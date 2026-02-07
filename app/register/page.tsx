@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
-
+import { HomeNavbar } from "@/components/home/navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,8 +68,10 @@ const RegisterPage = () => {
   };
 
   return (
-    <main className="min-h-[100svh] bg-background">
-      <div className="flex min-h-[100svh] items-center justify-center py-10">
+    <main className="min-h-screen bg-background">
+      <HomeNavbar isAuthenticated={false} />
+
+      <section className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="w-full max-w-md">
           <Card className="shadow-sm">
             <CardHeader className="space-y-2">
@@ -154,26 +156,8 @@ const RegisterPage = () => {
               </p>
             </CardFooter>
           </Card>
-
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            By creating an account, you agree to our{" "}
-            <Link
-              href="/terms"
-              className="hover:text-foreground underline-offset-4 hover:underline"
-            >
-              Terms
-            </Link>{" "}
-            and{" "}
-            <Link
-              href="/privacy"
-              className="hover:text-foreground underline-offset-4 hover:underline"
-            >
-              Privacy Policy
-            </Link>
-            .
-          </p>
         </div>
-      </div>
+      </section>
     </main>
   );
 };

@@ -1,44 +1,629 @@
-
 import Link from "next/link";
+import Image from "next/image";
+import {
+  ArrowRight,
+  Gavel,
+  ShieldCheck,
+  Timer,
+  Trophy,
+  Sparkles,
+  TrendingUp,
+  Users,
+  Zap,
+  Globe,
+  Award,
+  CheckCircle2,
+  Lock,
+  Clock,
+  BarChart3,
+  Star,
+  Wallet,
+  PlayCircle,
+} from "lucide-react";
 import { auth } from "@/auth";
+import { HomeFooter } from "@/components/home/footer";
+import { HomeNavbar } from "@/components/home/navbar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+const stats = [
+  {
+    label: "Live Auctions",
+    value: "120+",
+    icon: TrendingUp,
+    description: "Happening now",
+    color: "blue",
+  },
+  {
+    label: "Verified Users",
+    value: "8.5K+",
+    icon: Users,
+    description: "Trusted community",
+    color: "green",
+  },
+  {
+    label: "Items Sold",
+    value: "15K+",
+    icon: Trophy,
+    description: "Successful deals",
+    color: "violet",
+  },
+  {
+    label: "Satisfaction Rate",
+    value: "98%",
+    icon: Star,
+    description: "Happy bidders",
+    color: "amber",
+  },
+];
+
+const featureCards = [
+  {
+    icon: Zap,
+    title: "Lightning-Fast Bidding",
+    description:
+      "Experience real-time auction updates with zero lag. Watch bids flow in as they happen with our advanced websocket technology.",
+    color: "blue",
+    highlight: "Real-time updates",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Bank-Grade Security",
+    description:
+      "Your data and transactions are protected with end-to-end encryption. Every bid is verified and recorded immutably.",
+    color: "green",
+    highlight: "100% Secure",
+  },
+  {
+    icon: Clock,
+    title: "Smart Time Extensions",
+    description:
+      "Fair play guaranteed with automatic auction extensions. Last-second bids trigger countdown resets to ensure everyone gets a fair chance.",
+    color: "orange",
+    highlight: "Anti-sniping",
+  },
+  {
+    icon: BarChart3,
+    title: "Transparent Analytics",
+    description:
+      "Access complete bid history, price trends, and market insights. Make informed decisions with comprehensive data at your fingertips.",
+    color: "violet",
+    highlight: "Data-driven",
+  },
+  {
+    icon: Wallet,
+    title: "Flexible Payments",
+    description:
+      "Multiple payment methods supported including cards, bank transfers, and digital wallets. Quick checkout, instant confirmation.",
+    color: "rose",
+    highlight: "Easy checkout",
+  },
+  {
+    icon: Award,
+    title: "Verified Listings",
+    description:
+      "Every item undergoes quality verification. Detailed descriptions, authentic photos, and condition reports you can trust.",
+    color: "cyan",
+    highlight: "Quality assured",
+  },
+];
+
+const processCards = [
+  {
+    step: "01",
+    title: "Sign Up in Seconds",
+    description:
+      "Create your account with email or social login. Complete profile verification to unlock full bidding privileges.",
+    icon: Users,
+    color: "blue",
+  },
+  {
+    step: "02",
+    title: "Browse & Watchlist",
+    description:
+      "Explore curated categories from electronics to collectibles. Save favorites and get alerts when auctions are about to start.",
+    icon: Globe,
+    color: "violet",
+  },
+  {
+    step: "03",
+    title: "Bid with Confidence",
+    description:
+      "Place manual bids or set automatic bid limits. Win your item and complete secure checkout with seller protection.",
+    icon: Gavel,
+    color: "green",
+  },
+];
+
+const trustIndicators = [
+  { icon: CheckCircle2, text: "SSL Encrypted", color: "text-green-600" },
+  { icon: Lock, text: "Secure Payments", color: "text-blue-600" },
+  { icon: ShieldCheck, text: "Verified Sellers", color: "text-violet-600" },
+  { icon: Award, text: "Money-Back Guarantee", color: "text-amber-600" },
+];
 
 const Homepage = async () => {
   const session = await auth();
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4">
-      <div className="mx-auto mt-16 w-full max-w-4xl rounded-2xl bg-white p-10 shadow-md">
-        <h1 className="text-4xl font-bold text-slate-900">Welcome to BIDBZAR</h1>
-        <p className="mt-3 text-slate-600">
-          Online auction bidding platform powered by Next.js + MongoDB.
-        </p>
+    <main className="relative min-h-screen bg-background">
+      <HomeNavbar isAuthenticated={Boolean(session?.user)} />
 
-        <div className="mt-8 flex flex-wrap gap-3">
-          {session?.user ? (
-            <Link
-              href="/dashboard"
-              className="rounded-lg bg-slate-900 px-5 py-2 text-white transition hover:bg-slate-700"
+      <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+        {/* Hero Section - Redesigned with Image */}
+        <section className="relative mb-24 sm:mb-32">
+          <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+            {/* Left Column - Content */}
+            <div className="space-y-8">
+              {/* Badge */}
+              <div className="inline-flex animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                <div className="group relative inline-flex items-center gap-2 rounded-full border-2 border-blue-600 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition-all hover:bg-blue-100 hover:shadow-md dark:border-blue-500 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900">
+                  <Sparkles className="size-4" />
+                  <span>Nepal's Most Trusted Auction Platform</span>
+                </div>
+              </div>
+
+              {/* Main Headline */}
+              <div className="space-y-6">
+                <h1
+                  className="animate-in fade-in slide-in-from-bottom-6 text-balance text-4xl font-extrabold tracking-tight duration-1000 sm:text-5xl lg:text-6xl xl:text-7xl"
+                  style={{ animationDelay: "100ms" }}
+                >
+                  Where Every Bid
+                  <br />
+                  <span className="relative inline-block">
+                    <span className="bg-gradient-to-r from-blue-600 via-violet-600 to-blue-600 bg-clip-text text-transparent">
+                      Tells a Story
+                    </span>
+                    <svg
+                      className="absolute -bottom-2 left-0 w-full"
+                      height="12"
+                      viewBox="0 0 400 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M2 10C100 2 200 2 398 10"
+                        stroke="url(#gradient)"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                      />
+                      <defs>
+                        <linearGradient
+                          id="gradient"
+                          x1="0"
+                          y1="0"
+                          x2="400"
+                          y2="0"
+                        >
+                          <stop offset="0%" stopColor="rgb(59, 130, 246)" />
+                          <stop offset="50%" stopColor="rgb(139, 92, 246)" />
+                          <stop offset="100%" stopColor="rgb(59, 130, 246)" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                  </span>
+                </h1>
+
+                {/* Subheadline */}
+                <p
+                  className="animate-in fade-in slide-in-from-bottom-8 text-balance text-lg leading-relaxed text-muted-foreground duration-1000 sm:text-xl"
+                  style={{ animationDelay: "200ms" }}
+                >
+                  Join thousands of buyers and sellers in Nepal's premier online
+                  auction marketplace. Discover incredible deals through
+                  transparent, competitive bidding.
+                </p>
+              </div>
+
+              {/* CTA Buttons */}
+              <div
+                className="flex animate-in fade-in slide-in-from-bottom-10 flex-col items-start gap-4 duration-1000 sm:flex-row"
+                style={{ animationDelay: "300ms" }}
+              >
+                {session?.user ? (
+                  <Button
+                    asChild
+                    size="lg"
+                    className="group h-14 gap-2 rounded-full bg-blue-600 px-8 text-base font-semibold shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30"
+                  >
+                    <Link href="/dashboard">
+                      <span>Open Dashboard</span>
+                      <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      asChild
+                      size="lg"
+                      className="group h-14 gap-2 rounded-full bg-blue-600 px-8 text-base font-semibold shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30"
+                    >
+                      <Link href="/register">
+                        <span>Start Bidding Free</span>
+                        <ArrowRight className="size-5 transition-transform group-hover:translate-x-1" />
+                      </Link>
+                    </Button>
+                    <Button
+                      asChild
+                      size="lg"
+                      variant="outline"
+                      className="group h-14 gap-2 rounded-full border-2 px-8 text-base font-semibold transition-all hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                    >
+                      <Link href="/login">
+                        <PlayCircle className="size-5" />
+                        <span>Watch Demo</span>
+                      </Link>
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              {/* Trust Indicators */}
+              <div
+                className="flex animate-in fade-in slide-in-from-bottom-12 flex-wrap items-center gap-x-6 gap-y-3 pt-4 text-sm duration-1000"
+                style={{ animationDelay: "400ms" }}
+              >
+                {trustIndicators.map((indicator, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 text-muted-foreground"
+                  >
+                    <indicator.icon className={`size-4 ${indicator.color}`} />
+                    <span className="font-medium">{indicator.text}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right Column - Hero Image */}
+            <div
+              className="relative animate-in fade-in slide-in-from-right duration-1000 lg:order-last"
+              style={{ animationDelay: "200ms" }}
             >
-              Open Dashboard
-            </Link>
-          ) : (
-            <>
-              <Link
-                href="/login"
-                className="rounded-lg bg-slate-900 px-5 py-2 text-white transition hover:bg-slate-700"
+              {/* Main Image Container with extra padding for floating cards */}
+              <div className="relative px-6 py-8">
+                {/* Decorative Blob Background */}
+                <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-blue-500/20 via-violet-500/20 to-blue-500/20 blur-3xl" />
+
+                {/* Image Card */}
+                <div className="relative overflow-hidden rounded-3xl border-2 border-muted bg-gradient-to-br from-blue-50 to-violet-50 p-8 shadow-2xl dark:from-blue-950/30 dark:to-violet-950/30">
+                  {/* Replace this div with your actual image */}
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-to-br from-blue-100 to-violet-100 dark:from-blue-900/50 dark:to-violet-900/50">
+                    {/* Placeholder - Replace with actual Next.js Image */}
+                    {/* <div className="flex h-full items-center justify-center">
+                      <div className="space-y-6 text-center">
+                        <div className="mx-auto flex size-24 items-center justify-center rounded-full bg-blue-600 shadow-lg">
+                          <Gavel className="size-12 text-white" />
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-2xl font-bold">Live Auctions</p>
+                          <p className="text-muted-foreground">
+                            Browse active listings
+                          </p>
+                        </div>
+                      </div>
+                    </div> */}
+
+                    {/* Uncomment and use this when you have an actual image: */}
+                    <Image
+                      src="/images/Auction_hummer_preview.jpg"
+                      alt="Live auction platform showcase"
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+
+                  </div>
+
+                  {/* Floating Stats Cards */}
+                  <div className="absolute -bottom-2 -right-2 rounded-2xl border-2 border-background bg-card p-4 shadow-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-full bg-green-100 p-2 dark:bg-green-900/30">
+                        <TrendingUp className="size-5 text-green-600 dark:text-green-400" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">120+</p>
+                        <p className="text-xs text-muted-foreground">
+                          Active Now
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="absolute -left-2 top-1/4 rounded-2xl border-2 border-background bg-card p-4 shadow-xl sm:-left-4">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-full bg-blue-100 p-2 dark:bg-blue-900/30">
+                        <Users className="size-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold">8.5K+</p>
+                        <p className="text-xs text-muted-foreground">Users</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Grid - Moved below hero */}
+          <div
+            className="mt-20 grid animate-in fade-in slide-in-from-bottom-14 gap-6 duration-1000 sm:grid-cols-2 lg:grid-cols-4"
+            style={{ animationDelay: "500ms" }}
+          >
+            {stats.map((stat, idx) => {
+              const colorClasses = {
+                blue: "bg-blue-600 bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-900",
+                green:
+                  "bg-green-600 bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-900",
+                violet:
+                  "bg-violet-600 bg-violet-50 dark:bg-violet-950/50 border-violet-200 dark:border-violet-900",
+                amber:
+                  "bg-amber-600 bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-900",
+              };
+
+              return (
+                <Card
+                  key={idx}
+                  className={`group relative overflow-hidden border-2 ${colorClasses[stat.color as keyof typeof colorClasses]} transition-all duration-300 hover:scale-105 hover:shadow-xl`}
+                >
+                  <CardContent className="p-6">
+                    <div
+                      className={`mb-4 inline-flex rounded-xl ${colorClasses[stat.color as keyof typeof colorClasses].split(" ")[0]} p-3 shadow-lg`}
+                    >
+                      <stat.icon className="size-6 text-white" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-4xl font-bold tracking-tight">
+                        {stat.value}
+                      </p>
+                      <p className="font-semibold text-foreground">
+                        {stat.label}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {stat.description}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section id="features" className="mb-24 scroll-mt-24 sm:mb-32">
+          <div className="mb-16 text-center">
+            <Badge
+              variant="secondary"
+              className="mb-4 rounded-full px-4 py-2 text-sm font-medium"
+            >
+              <Trophy className="mr-2 inline size-4" />
+              Platform Features
+            </Badge>
+            <h2 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
+              Built for Modern Auctions
+            </h2>
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              Advanced technology meets intuitive design. Everything you need to
+              bid, sell, and win.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {featureCards.map((feature, idx) => {
+              const colorClasses = {
+                blue: "bg-blue-500 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+                green:
+                  "bg-green-500 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+                orange:
+                  "bg-orange-500 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800",
+                violet:
+                  "bg-violet-500 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800",
+                rose: "bg-rose-500 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+                cyan: "bg-cyan-500 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
+              };
+
+              return (
+                <Card
+                  key={idx}
+                  className="group relative overflow-hidden border-2 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                >
+                  <CardHeader className="space-y-4 p-8">
+                    <div className="flex items-start justify-between">
+                      <div
+                        className={`rounded-xl ${colorClasses[feature.color as keyof typeof colorClasses].split(" ")[0]}/10 p-3 ring-2 ${colorClasses[feature.color as keyof typeof colorClasses].split(" ")[2]}`}
+                      >
+                        <feature.icon
+                          className={`size-7 ${colorClasses[feature.color as keyof typeof colorClasses].split(" ")[0]}`}
+                        />
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className="text-xs font-semibold"
+                      >
+                        {feature.highlight}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-3">
+                      <CardTitle className="text-2xl">
+                        {feature.title}
+                      </CardTitle>
+                      <CardDescription className="text-base leading-relaxed">
+                        {feature.description}
+                      </CardDescription>
+                    </div>
+                  </CardHeader>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* How It Works Section */}
+        <section id="how-it-works" className="mb-24 scroll-mt-24 sm:mb-32">
+          <div className="mb-16 text-center">
+            <h2 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl">
+              Start Bidding in Minutes
+            </h2>
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              Our streamlined process gets you from signup to your first winning
+              bid in no time.
+            </p>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-3">
+            {processCards.map((item, idx) => {
+              const colorClasses = {
+                blue: "bg-blue-600 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800",
+                violet:
+                  "bg-violet-600 bg-violet-50 dark:bg-violet-950/30 border-violet-200 dark:border-violet-800",
+                green:
+                  "bg-green-600 bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800",
+              };
+
+              return (
+                <div key={idx} className="relative">
+                  {/* Connector Line */}
+                  {idx < processCards.length - 1 && (
+                    <div className="absolute left-full top-20 hidden w-full md:block">
+                      <div className="mx-4 border-t-2 border-dashed border-muted-foreground/30" />
+                    </div>
+                  )}
+
+                  <Card
+                    className={`group relative h-full overflow-hidden border-2 ${colorClasses[item.color as keyof typeof colorClasses]} transition-all duration-300 hover:scale-105 hover:shadow-2xl`}
+                  >
+                    <CardHeader className="space-y-6 p-8">
+                      <div className="flex items-center justify-between">
+                        <div
+                          className={`inline-flex items-center gap-3 rounded-full ${colorClasses[item.color as keyof typeof colorClasses].split(" ")[0]} px-5 py-2.5 text-white shadow-lg`}
+                        >
+                          <span className="text-sm font-bold">STEP</span>
+                          <span className="text-2xl font-bold">
+                            {item.step}
+                          </span>
+                        </div>
+                        <div
+                          className={`rounded-xl ${colorClasses[item.color as keyof typeof colorClasses].split(" ")[0]}/10 p-3`}
+                        >
+                          <item.icon
+                            className={`size-6 ${colorClasses[item.color as keyof typeof colorClasses].split(" ")[0]}`}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <CardTitle className="text-2xl">{item.title}</CardTitle>
+                        <CardDescription className="text-base leading-relaxed">
+                          {item.description}
+                        </CardDescription>
+                      </div>
+                    </CardHeader>
+                  </Card>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Testimonial/Social Proof Section */}
+        <section className="mb-24 sm:mb-32">
+          <div className="rounded-3xl border-2 border-muted bg-muted p-12 text-center shadow-lg">
+            <div className="mx-auto max-w-3xl space-y-6">
+              <div className="flex justify-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className="size-8 fill-amber-400 text-amber-400"
+                  />
+                ))}
+              </div>
+              <blockquote className="text-2xl font-semibold leading-relaxed sm:text-3xl">
+                "BIDBZAR transformed how we buy and sell in Nepal. The platform
+                is incredibly fast, transparent, and trustworthy. I've won over
+                20 auctions!"
+              </blockquote>
+              <div className="space-y-1">
+                <p className="font-semibold">Rajesh Sharma</p>
+                <p className="text-sm text-muted-foreground">
+                  Kathmandu • Active Bidder Since 2023
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Final CTA Section */}
+        <section
+          id="cta"
+          className="relative overflow-hidden rounded-3xl bg-blue-600 p-12 shadow-2xl sm:p-16 lg:p-20"
+        >
+          <div className="relative z-10 mx-auto max-w-4xl text-center">
+            <div className="mb-8 space-y-4">
+              <h3 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+                Ready to Win Your Next Auction?
+              </h3>
+              <p className="mx-auto max-w-2xl text-xl text-white/90">
+                Join 8,500+ verified bidders and sellers on Nepal's most trusted
+                auction platform. Sign up free and start exploring live auctions
+                today.
+              </p>
+            </div>
+
+            <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+              <Button
+                asChild
+                size="lg"
+                className="group h-14 gap-3 rounded-full bg-white px-10 text-lg font-bold text-blue-600 shadow-2xl transition-all hover:bg-white/95"
               >
-                Login
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-lg border border-slate-300 px-5 py-2 text-slate-700 transition hover:bg-slate-50"
-              >
-                Register
-              </Link>
-            </>
-          )}
-        </div>
+                <Link href={session?.user ? "/dashboard" : "/register"}>
+                  {session?.user ? "Go to Dashboard" : "Get Started Free"}
+                  <ArrowRight className="size-6 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+              {!session?.user && (
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-14 rounded-full border-2 border-white bg-white/20 px-10 text-lg font-bold text-white transition-all hover:bg-white/30"
+                >
+                  <Link href="/login">Sign In</Link>
+                </Button>
+              )}
+            </div>
+
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-white/80">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="size-5" />
+                <span className="text-sm font-medium">
+                  No credit card required
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="size-5" />
+                <span className="text-sm font-medium">Setup in 2 minutes</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="size-5" />
+                <span className="text-sm font-medium">Cancel anytime</span>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
+
+      <HomeFooter />
     </main>
   );
 };
