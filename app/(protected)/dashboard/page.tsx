@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   CircleCheckBig,
@@ -33,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { queryKeys } from "@/lib/query-keys";
 
 type Summary = {
   activeBids: number;
@@ -69,6 +71,19 @@ type DashboardResponse = {
   watchlist: WatchlistRow[];
 };
 
+async function fetchDashboardData(): Promise<DashboardResponse> {
+  const res = await fetch("/api/dashboard/data");
+  const json = (await res.json()) as {
+    ok?: boolean;
+    data?: DashboardResponse;
+    message?: string;
+  };
+  if (!res.ok || !json.ok || !json.data) {
+    throw new Error(json.message ?? "Unable to load dashboard data.");
+  }
+  return json.data;
+}
+
 const CONDITIONS = ["new", "like_new", "excellent", "good", "fair", "poor"] as const;
 type Condition = (typeof CONDITIONS)[number];
 const DURATION_UNITS = ["minutes", "hours", "days", "months"] as const;
@@ -89,9 +104,8 @@ type CategoryOption = (typeof CATEGORY_OPTIONS)[number];
 
 export default function DashboardPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: session } = useSession();
-  const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -108,28 +122,10 @@ export default function DashboardPage() {
   const [dragOver, setDragOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        const res = await fetch("/api/dashboard/data", { cache: "no-store" });
-        const json = (await res.json()) as { ok?: boolean; data?: DashboardResponse };
-        if (!isMounted) return;
-        if (res.ok && json.ok && json.data) {
-          setDashboard(json.data);
-        } else {
-          setDashboard({
-            summary: { activeBids: 0, wonAuctions: 0, sellingLive: 0, unreadNotifications: 0 },
-            myBids: [],
-            watchlist: [],
-          });
-        }
-      } finally {
-        if (isMounted) setIsLoading(false);
-      }
-    })();
-    return () => { isMounted = false; };
-  }, []);
+  const dashboardQuery = useQuery({
+    queryKey: queryKeys.dashboardData(),
+    queryFn: fetchDashboardData,
+  });
 
   useEffect(() => {
     return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
@@ -153,7 +149,14 @@ export default function DashboardPage() {
   const email = session?.user?.email ?? "Unknown";
   const initials = name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "U";
 
-  const summary = dashboard?.summary ?? { activeBids: 0, wonAuctions: 0, sellingLive: 0, unreadNotifications: 0 };
+  const dashboard = dashboardQuery.data;
+  const isLoading = dashboardQuery.isLoading;
+  const summary = dashboard?.summary ?? {
+    activeBids: 0,
+    wonAuctions: 0,
+    sellingLive: 0,
+    unreadNotifications: 0,
+  };
   const myBids = dashboard?.myBids ?? [];
   const watchlist = dashboard?.watchlist ?? [];
 
@@ -226,6 +229,11 @@ export default function DashboardPage() {
       });
       const createJson = (await createRes.json()) as { auctionId?: string };
       if (createRes.ok) {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: queryKeys.dashboardData() }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.myAuctions() }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.liveAuctions() }),
+        ]);
         router.push(`/auctions/${createJson.auctionId}`);
         router.refresh();
       }

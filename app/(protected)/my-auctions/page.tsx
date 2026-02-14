@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit3, Eye, Loader2, Save, Trash2, Upload, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { queryKeys } from "@/lib/query-keys";
 
 type Condition = "new" | "like_new" | "excellent" | "good" | "fair" | "poor";
 type DurationUnit = "minutes" | "hours" | "days" | "months";
@@ -107,9 +109,28 @@ function toDurationHours(value: number, unit: DurationUnit) {
   return Math.round(value);
 }
 
+async function fetchMyAuctions(): Promise<MyAuctionItem[]> {
+  const res = await fetch("/api/auctions/mine");
+  const json = (await res.json()) as {
+    ok?: boolean;
+    items?: MyAuctionItem[];
+    message?: string;
+  };
+  if (!res.ok || !json.ok || !json.items) {
+    throw new Error(json.message ?? "Unable to load auctions.");
+  }
+  return json.items;
+}
+
 export default function MyAuctionsPage() {
-  const [items, setItems] = useState<MyAuctionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+  const myAuctionsQuery = useQuery({
+    queryKey: queryKeys.myAuctions(),
+    queryFn: fetchMyAuctions,
+  });
+
+  const items = myAuctionsQuery.data ?? [];
+  const isLoading = myAuctionsQuery.isLoading;
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -140,30 +161,6 @@ export default function MyAuctionsPage() {
       }),
     []
   );
-
-  async function load() {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/auctions/mine", { cache: "no-store" });
-      const json = (await res.json()) as { ok?: boolean; items?: MyAuctionItem[]; message?: string };
-      if (!res.ok || !json.ok || !json.items) {
-        setError(json.message ?? "Unable to load auctions.");
-        setItems([]);
-        return;
-      }
-      setItems(json.items);
-    } catch {
-      setError("Unable to load auctions.");
-      setItems([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -266,7 +263,11 @@ export default function MyAuctionsPage() {
         setError(json.message ?? "Unable to update auction.");
         return;
       }
-      await load();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.myAuctions() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardData() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.liveAuctions() }),
+      ]);
       stopEdit();
     } catch {
       setError("Unable to update auction.");
@@ -286,7 +287,11 @@ export default function MyAuctionsPage() {
         setError(json.message ?? "Unable to cancel auction.");
         return;
       }
-      await load();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.myAuctions() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardData() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.liveAuctions() }),
+      ]);
       if (editingId === auctionId) stopEdit();
       setConfirmCancelId(null);
     } catch {
@@ -318,9 +323,14 @@ export default function MyAuctionsPage() {
           </Button>
         </div>
 
-        {error ? (
+        {(error || myAuctionsQuery.error) ? (
           <Card className="mb-6 border-destructive/30">
-            <CardContent className="p-4 text-sm text-destructive">{error}</CardContent>
+            <CardContent className="p-4 text-sm text-destructive">
+              {error ??
+                (myAuctionsQuery.error instanceof Error
+                  ? myAuctionsQuery.error.message
+                  : "Unable to load auctions.")}
+            </CardContent>
           </Card>
         ) : null}
 

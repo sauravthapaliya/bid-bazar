@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   ChevronDown,
   Gavel,
@@ -37,7 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 type Props = {
-  userName: string;
+  userName?: string;
   userEmail?: string | null;
   userImage?: string | null;
 };
@@ -68,7 +69,6 @@ function UserMenu({
   userImage?: string | null;
   setLogoutConfirmOpen: (open: boolean) => void;
 }) {
-  const router = useRouter();
   const initials = getInitials(userName);
 
   return (
@@ -128,24 +128,30 @@ function UserMenu({
 
         <DropdownMenuItem
           className="h-10 cursor-pointer rounded-xl font-medium"
-          onClick={() => router.push("/dashboard")}
+          asChild
         >
-          <LayoutDashboard className="mr-3 h-4 w-4" />
-          <span>Dashboard</span>
+          <Link href="/dashboard">
+            <LayoutDashboard className="mr-3 h-4 w-4" />
+            <span>Dashboard</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem
           className="h-10 cursor-pointer rounded-xl font-medium"
-          onClick={() => router.push("/my-auctions")}
+          asChild
         >
-          <ListChecks className="mr-3 h-4 w-4" />
-          <span>Manage Auctions</span>
+          <Link href="/my-auctions">
+            <ListChecks className="mr-3 h-4 w-4" />
+            <span>Manage Auctions</span>
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuItem
           className="h-10 cursor-pointer rounded-xl font-medium"
-          onClick={() => router.push("/auctions")}
+          asChild
         >
-          <GavelIcon className="mr-3 h-4 w-4" />
-          <span>Live Market</span>
+          <Link href="/auctions">
+            <GavelIcon className="mr-3 h-4 w-4" />
+            <span>Live Market</span>
+          </Link>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator className="my-3" />
@@ -164,13 +170,18 @@ function UserMenu({
 }
 
 export default function ProtectedNavbar({
-  userName,
-  userEmail,
-  userImage,
+  userName: userNameProp,
+  userEmail: userEmailProp,
+  userImage: userImageProp,
 }: Props) {
+  const { data: session } = useSession();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const userName =
+    userNameProp ?? session?.user?.name ?? session?.user?.email ?? "Account";
+  const userEmail = userEmailProp ?? session?.user?.email ?? null;
+  const userImage = userImageProp ?? session?.user?.image ?? null;
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

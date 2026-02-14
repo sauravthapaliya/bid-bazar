@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ensureDatabaseSchema } from "@/lib/db-schema";
+import { getLiveAuctions } from "@/lib/auction-market";
 import { COLLECTIONS } from "@/types/entities";
 
 const createAuctionSchema = z.object({
@@ -127,29 +128,7 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
-    const { db } = await connectToDatabase();
-    const now = new Date();
-
-    const auctions = await db
-      .collection(COLLECTIONS.auctions)
-      .find({ status: { $in: ["live", "scheduled"] }, endsAt: { $gt: now } })
-      .sort({ endsAt: 1 })
-      .limit(40)
-      .project({
-        _id: 1,
-        productId: 1,
-        title: 1,
-        status: 1,
-        startPrice: 1,
-        currentPrice: 1,
-        bidIncrement: 1,
-        totalBids: 1,
-        sellerId: 1,
-        startsAt: 1,
-        endsAt: 1,
-      })
-      .toArray();
-
+    const auctions = await getLiveAuctions(40);
     return NextResponse.json({ ok: true, auctions }, { status: 200 });
   } catch (error) {
     const details =

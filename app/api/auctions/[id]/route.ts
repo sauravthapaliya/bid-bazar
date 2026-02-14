@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { auth } from "@/auth";
+import { getAuctionDetail } from "@/lib/auction-market";
 import { connectToDatabase } from "@/lib/mongodb";
 import { COLLECTIONS } from "@/types/entities";
 
@@ -42,6 +43,31 @@ async function findOwnedAuction(args: { auctionId: string; userId: string }) {
   } as never);
 
   return { db, auctions, auction };
+}
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const session = await auth();
+    const auction = await getAuctionDetail(id, session?.user?.id ?? null);
+    if (!auction) {
+      return NextResponse.json(
+        { ok: false, message: "Auction not found." },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json({ ok: true, auction }, { status: 200 });
+  } catch (error) {
+    const details =
+      error instanceof Error ? error.message : "Unable to load auction";
+    return NextResponse.json(
+      { ok: false, message: "Unable to load auction.", details },
+      { status: 500 }
+    );
+  }
 }
 
 export async function PUT(
