@@ -210,7 +210,7 @@ export default function ProtectedNavbar({
   const userId = userIdProp ?? (session?.user?.id ? String(session.user.id) : null);
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex h-16 w-full max-w-[90rem] items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         {/* Logo Section */}
         <Link

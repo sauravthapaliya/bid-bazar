@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Gavel, Menu, X, Home, Zap, BookOpen, Rocket } from "lucide-react";
+import { Gavel, Menu, X, Zap, BookOpen, Rocket } from "lucide-react";
 import { useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ export function HomeNavbar({ isAuthenticated }: HomeNavbarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navLinks = [
+    { href: "/#live-market", label: "Live Market", icon: Gavel },
     { href: "/#features", label: "Features", icon: Zap },
     { href: "/#how-it-works", label: "How It Works", icon: BookOpen },
     { href: "/#cta", label: "Get Started", icon: Rocket },

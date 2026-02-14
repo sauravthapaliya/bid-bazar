@@ -21,6 +21,7 @@ type AuctionListItem = {
   condition: string;
   conditionAgeDays: number | null;
   status: string;
+  startPrice: number;
   currentPrice: number;
   totalBids: number;
   endsAt: string | Date | null;
@@ -148,14 +149,26 @@ export default function AuctionsPage() {
                       {auction.category}
                     </Badge>
                     <Badge variant="outline" className="text-xs font-medium">
-                      {conditionLabel(auction.condition, auction.conditionAgeDays)}
+                      {conditionLabel(
+                        auction.condition,
+                        auction.conditionAgeDays,
+                      )}
                     </Badge>
                     <Badge variant="outline" className="text-xs font-medium">
-                      {auction.totalBids} {auction.totalBids === 1 ? "bid" : "bids"}
+                      {auction.totalBids}{" "}
+                      {auction.totalBids === 1 ? "bid" : "bids"}
                     </Badge>
                   </div>
 
                   <div className="space-y-3 rounded-lg border bg-muted/50 p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-muted-foreground">
+                        Starting Price
+                      </span>
+                      <span className="text-lg font-bold text-foreground">
+                        {money.format(auction.startPrice)}
+                      </span>
+                    </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-muted-foreground">
                         Current Price
@@ -166,7 +179,7 @@ export default function AuctionsPage() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-muted-foreground">
-                        Ends
+                        Auction Ends
                       </span>
                       <span className="text-sm font-medium text-foreground">
                         {auction.endsAt

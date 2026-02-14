@@ -25,6 +25,7 @@ import { HomeFooter } from "@/components/home/footer";
 import { HomeNavbar } from "@/components/home/navbar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getLiveAuctions } from "@/lib/auction-market";
 import {
   Card,
   CardContent,
@@ -149,20 +150,35 @@ const trustIndicators = [
   { icon: Award, text: "Money-Back Guarantee", color: "text-amber-600" },
 ];
 
+const money = new Intl.NumberFormat("en-NP", {
+  style: "currency",
+  currency: "NPR",
+  maximumFractionDigits: 0,
+});
+
+const dateTime = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+});
+
 const Homepage = async () => {
   const session = await auth();
+  const auctions = await getLiveAuctions(4);
+  const featuredAuctions = auctions.slice(0, 4);
+  const isAuthenticated = Boolean(session?.user);
 
   return (
     <main className="relative min-h-screen bg-background">
-      <HomeNavbar isAuthenticated={Boolean(session?.user)} />
+      <HomeNavbar isAuthenticated={isAuthenticated} />
 
       <div className="mx-auto w-full max-w-[90rem] px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-        {/* Hero Section - Redesigned with Image */}
+        {/* Hero Section */}
         <section className="relative mb-24 sm:mb-32">
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
             {/* Left Column - Content */}
             <div className="space-y-8">
-              {/* Badge */}
               <div className="inline-flex animate-in fade-in slide-in-from-bottom-4 duration-1000">
                 <div className="group relative inline-flex items-center gap-2 rounded-full border-2 border-blue-600 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition-all hover:bg-blue-100 hover:shadow-md dark:border-blue-500 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900">
                   <Sparkles className="size-4" />
@@ -288,31 +304,12 @@ const Homepage = async () => {
               className="relative animate-in fade-in slide-in-from-right duration-1000 lg:order-last"
               style={{ animationDelay: "200ms" }}
             >
-              {/* Main Image Container with extra padding for floating cards */}
               <div className="relative px-6 py-8">
-                {/* Decorative Blob Background */}
                 <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-blue-500/20 via-violet-500/20 to-blue-500/20 blur-3xl" />
 
                 {/* Image Card */}
                 <div className="relative overflow-hidden rounded-3xl border-2 border-muted bg-gradient-to-br from-blue-50 to-violet-50 p-8 shadow-2xl dark:from-blue-950/30 dark:to-violet-950/30">
-                  {/* Replace this div with your actual image */}
                   <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-to-br from-blue-100 to-violet-100 dark:from-blue-900/50 dark:to-violet-900/50">
-                    {/* Placeholder - Replace with actual Next.js Image */}
-                    {/* <div className="flex h-full items-center justify-center">
-                      <div className="space-y-6 text-center">
-                        <div className="mx-auto flex size-24 items-center justify-center rounded-full bg-blue-600 shadow-lg">
-                          <Gavel className="size-12 text-white" />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-2xl font-bold">Live Auctions</p>
-                          <p className="text-muted-foreground">
-                            Browse active listings
-                          </p>
-                        </div>
-                      </div>
-                    </div> */}
-
-                    {/* Uncomment and use this when you have an actual image: */}
                     <Image
                       src="/images/Auction_hummer_preview.jpg"
                       alt="Live auction platform showcase"
@@ -353,7 +350,7 @@ const Homepage = async () => {
             </div>
           </div>
 
-          {/* Stats Grid - Moved below hero */}
+          {/* Stats Grid */}
           <div
             className="mt-20 grid animate-in fade-in slide-in-from-bottom-14 gap-6 duration-1000 sm:grid-cols-2 lg:grid-cols-4"
             style={{ animationDelay: "500ms" }}
@@ -396,6 +393,133 @@ const Homepage = async () => {
               );
             })}
           </div>
+        </section>
+
+        {/* Live Market Section */}
+        <section id="live-market" className="mb-24 scroll-mt-24 sm:mb-32">
+          <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <Badge
+                variant="secondary"
+                className="mb-4 rounded-full px-4 py-2 text-sm font-medium"
+              >
+                <Gavel className="mr-2 inline size-4" />
+                Live Market Auctions
+              </Badge>
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                Place Your Bid
+              </h2>
+              <p className="mt-2 max-w-2xl text-base text-muted-foreground">
+                See the latest live auctions. To participate in bidding, sign in
+                or create your account first.
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+              <Button asChild variant="outline">
+                <Link href={isAuthenticated ? "/auctions" : "/login"}>
+                  Browse All Auctions
+                </Link>
+              </Button>
+            </div>
+          </div>
+
+          {featuredAuctions.length === 0 ? (
+            <Card className="border shadow-sm">
+              <CardContent className="py-10 text-center">
+                <p className="text-base font-medium text-foreground">
+                  No live auctions at the moment
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Please check back soon.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+              {featuredAuctions.map((auction) => (
+                <Card
+                  key={auction.id}
+                  className="group flex h-full flex-col overflow-hidden border shadow-sm transition-all hover:shadow-md"
+                >
+                  <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+                    {auction.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={auction.imageUrl}
+                        alt={auction.title}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                        No image
+                      </div>
+                    )}
+                  </div>
+
+                  <CardHeader className="space-y-1 pb-2">
+                    <CardTitle className="line-clamp-1 text-lg">
+                      {auction.title}
+                    </CardTitle>
+                    <CardDescription className="line-clamp-1 text-sm">
+                      {auction.description || "No description available"}
+                    </CardDescription>
+                  </CardHeader>
+
+                  <CardContent className="flex flex-1 flex-col gap-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="neutral" className="text-xs font-medium">
+                        {auction.category}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs font-medium">
+                        {auction.totalBids}{" "}
+                        {auction.totalBids === 1 ? "bid" : "bids"}
+                      </Badge>
+                    </div>
+
+                    <div className="space-y-2 rounded-lg border bg-muted/40 p-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Starting Price
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          {money.format(auction.startPrice)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Current Price
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          {money.format(auction.currentPrice)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Auction Ends
+                        </span>
+                        <span className="font-semibold text-foreground">
+                          {auction.endsAt
+                            ? dateTime.format(new Date(auction.endsAt))
+                            : "Unknown"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <Button asChild className="mt-auto w-full">
+                      <Link
+                        href={
+                          isAuthenticated ? `/auctions/${auction.id}` : "/login"
+                        }
+                      >
+                        View Auction
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Features Section */}
