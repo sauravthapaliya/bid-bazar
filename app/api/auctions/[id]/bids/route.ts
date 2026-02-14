@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
+import { finalizeExpiredAuctions } from "@/lib/auction-finalization";
 import { COLLECTIONS } from "@/types/entities";
 
 const bidSchema = z.object({
@@ -48,6 +49,7 @@ export async function POST(request: Request, { params }: Params) {
     }
 
     const { db } = await connectToDatabase();
+    await finalizeExpiredAuctions(db);
     const auctions = db.collection<Record<string, unknown>>(COLLECTIONS.auctions);
     const bids = db.collection<Record<string, unknown>>(COLLECTIONS.bids);
 

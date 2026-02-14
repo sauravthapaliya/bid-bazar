@@ -4,7 +4,7 @@ import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock3 } from "lucide-react";
+import { Clock3, HandCoins, Trophy } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -24,6 +24,7 @@ type AuctionBidItem = {
   id: string;
   amount: number;
   createdAt: string | Date | null;
+  bidderId: string;
   bidderLabel: string;
 };
 
@@ -44,6 +45,9 @@ type AuctionDetail = {
   imageUrl: string | null;
   isOwnerView: boolean;
   bids: AuctionBidItem[];
+  winnerId: string | null;
+  winnerLabel: string | null;
+  isViewerWinner: boolean;
 };
 
 type Params = {
@@ -86,6 +90,22 @@ function conditionLabel(condition: string, conditionAgeDays: number | null) {
   return shouldShowAge ? `${base} days used` : base;
 }
 
+function bidderMask(bidderId: string) {
+  if (bidderId.length <= 6) return bidderId;
+  return `${bidderId.slice(0, 3)}***${bidderId.slice(-3)}`;
+}
+
+function statusVariant(
+  status: string | undefined,
+): "statusLive" | "statusScheduled" | "statusExpired" | "statusEnded" | "statusCancelled" | "neutral" {
+  if (status === "live") return "statusLive";
+  if (status === "scheduled") return "statusScheduled";
+  if (status === "expired") return "statusExpired";
+  if (status === "ended") return "statusEnded";
+  if (status === "cancelled") return "statusCancelled";
+  return "neutral";
+}
+
 export default function AuctionDetailPage({ params }: Params) {
   const { id } = use(params);
   const queryClient = useQueryClient();
@@ -109,6 +129,8 @@ export default function AuctionDetailPage({ params }: Params) {
       endsAt <= now,
   );
   const effectiveStatus = hasExpired ? "expired" : auction?.status;
+  const isFinalized = effectiveStatus === "ended" || effectiveStatus === "cancelled";
+  const bidderSummaryLabel = isFinalized ? "Winner" : "Highest Bidder";
   const isLive = Boolean(
     auction &&
       auction.status === "live" &&
@@ -119,6 +141,34 @@ export default function AuctionDetailPage({ params }: Params) {
   const minimumAllowed = useMemo(() => {
     if (!auction) return 0;
     return Math.round(auction.currentPrice + auction.bidIncrement);
+  }, [auction]);
+  const viewerId = session?.user?.id ? String(session.user.id) : null;
+  const winnerBid = useMemo(() => {
+    if (!auction?.winnerId) return null;
+
+    let selected: AuctionBidItem | null = null;
+    for (const bid of auction.bids) {
+      if (bid.bidderId !== auction.winnerId) continue;
+      if (!selected) {
+        selected = bid;
+        continue;
+      }
+
+      if (bid.amount > selected.amount) {
+        selected = bid;
+        continue;
+      }
+
+      if (bid.amount === selected.amount) {
+        const bidTime = bid.createdAt ? new Date(bid.createdAt).valueOf() : 0;
+        const selectedTime = selected.createdAt ? new Date(selected.createdAt).valueOf() : 0;
+        if (bidTime > selectedTime) {
+          selected = bid;
+        }
+      }
+    }
+
+    return selected;
   }, [auction]);
 
   async function submitBid(event: React.FormEvent<HTMLFormElement>) {
@@ -224,15 +274,7 @@ export default function AuctionDetailPage({ params }: Params) {
                   </div>
                 )}
                 <div className="absolute right-4 top-4">
-                  <Badge
-                    variant={
-                      effectiveStatus === "live"
-                        ? "success"
-                        : effectiveStatus === "expired"
-                          ? "warning"
-                          : "secondary"
-                    }
-                  >
+                  <Badge variant={statusVariant(effectiveStatus)}>
                     {effectiveStatus}
                   </Badge>
                 </div>
@@ -249,7 +291,7 @@ export default function AuctionDetailPage({ params }: Params) {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="secondary">{auction.category}</Badge>
+                  <Badge variant="neutral">{auction.category}</Badge>
                   <Badge variant="outline">
                     {conditionLabel(auction.condition, auction.conditionAgeDays)}
                   </Badge>
@@ -264,7 +306,11 @@ export default function AuctionDetailPage({ params }: Params) {
                   Bid History
                 </CardTitle>
                 <CardDescription className="text-sm">
-                  {auction.isOwnerView
+                  {isFinalized && auction.winnerLabel && winnerBid
+                    ? `Winner: ${auction.winnerLabel} - Winning bid: ${money.format(winnerBid.amount)}`
+                    : isFinalized && auction.winnerLabel
+                      ? `Winner: ${auction.winnerLabel}`
+                    : auction.isOwnerView
                     ? "Full bidder details visible to you as the seller"
                     : "Bidder identities are protected"}
                 </CardDescription>
@@ -281,9 +327,19 @@ export default function AuctionDetailPage({ params }: Params) {
                             <p className="text-lg font-bold text-foreground">
                               {money.format(bid.amount)}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {bid.bidderLabel}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-muted-foreground">
+                                {auction.isOwnerView
+                                  ? `${bid.bidderLabel} (${bidderMask(bid.bidderId)})`
+                                  : bid.bidderLabel}
+                              </p>
+                              {viewerId && bid.bidderId === viewerId ? (
+                                <Badge variant="bidWinning">You</Badge>
+                              ) : null}
+                              {isFinalized && winnerBid && bid.id === winnerBid.id ? (
+                                <Badge variant="bidWon">Winning Bid</Badge>
+                              ) : null}
+                            </div>
                           </div>
                           <p className="text-sm text-muted-foreground">
                             {bid.createdAt
@@ -343,7 +399,20 @@ export default function AuctionDetailPage({ params }: Params) {
                     <span className="text-sm text-muted-foreground">
                       Total Bids
                     </span>
-                    <Badge variant="secondary">{auction.totalBids}</Badge>
+                    <Badge variant="neutral">{auction.totalBids}</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      {bidderSummaryLabel}
+                    </span>
+                    {auction.winnerLabel ? (
+                      <Badge variant={isFinalized ? "bidWon" : "bidWinning"} className="gap-1">
+                        {isFinalized ? <Trophy className="h-3 w-3" /> : <HandCoins className="h-3 w-3" />}
+                        {auction.winnerLabel}
+                      </Badge>
+                    ) : (
+                      <Badge variant="neutral">{isFinalized ? "No winner" : "No bids yet"}</Badge>
+                    )}
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">

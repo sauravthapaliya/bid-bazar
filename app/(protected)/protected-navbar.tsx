@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Gavel,
   GavelIcon,
+  HandCoins,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -41,11 +42,13 @@ type Props = {
   userName?: string;
   userEmail?: string | null;
   userImage?: string | null;
+  userId?: string | null;
 };
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/my-auctions", label: "Manage Auctions", icon: ListChecks },
+  { href: "/my-bids", label: "My Bids", icon: HandCoins },
+  { href: "/my-auctions", label: "My Auctions", icon: ListChecks },
   { href: "/auctions", label: "Live Market", icon: GavelIcon },
 ];
 
@@ -58,15 +61,22 @@ function getInitials(name: string) {
   return parts.map((v) => v[0]?.toUpperCase() ?? "").join("") || "U";
 }
 
+function maskBidderId(id: string) {
+  if (id.length <= 6) return id;
+  return `${id.slice(0, 3)}***${id.slice(-3)}`;
+}
+
 function UserMenu({
   userName,
   userEmail,
   userImage,
+  userId,
   setLogoutConfirmOpen,
 }: {
   userName: string;
   userEmail?: string | null;
   userImage?: string | null;
+  userId?: string | null;
   setLogoutConfirmOpen: (open: boolean) => void;
 }) {
   const initials = getInitials(userName);
@@ -123,9 +133,23 @@ function UserMenu({
             <p className="truncate text-sm text-muted-foreground">
               {userEmail || "Signed in"}
             </p>
+            {userId ? (
+              <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">
+                Bidder ID: {maskBidderId(userId)}
+              </p>
+            ) : null}
           </div>
         </div>
 
+        <DropdownMenuItem
+          className="h-10 cursor-pointer rounded-xl font-medium"
+          asChild
+        >
+          <Link href="/my-bids">
+            <HandCoins className="mr-3 h-4 w-4" />
+            <span>My Bids</span>
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem
           className="h-10 cursor-pointer rounded-xl font-medium"
           asChild
@@ -141,7 +165,7 @@ function UserMenu({
         >
           <Link href="/my-auctions">
             <ListChecks className="mr-3 h-4 w-4" />
-            <span>Manage Auctions</span>
+            <span>My Auctions</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem
@@ -173,6 +197,7 @@ export default function ProtectedNavbar({
   userName: userNameProp,
   userEmail: userEmailProp,
   userImage: userImageProp,
+  userId: userIdProp,
 }: Props) {
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -182,6 +207,7 @@ export default function ProtectedNavbar({
     userNameProp ?? session?.user?.name ?? session?.user?.email ?? "Account";
   const userEmail = userEmailProp ?? session?.user?.email ?? null;
   const userImage = userImageProp ?? session?.user?.image ?? null;
+  const userId = userIdProp ?? (session?.user?.id ? String(session.user.id) : null);
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -239,6 +265,7 @@ export default function ProtectedNavbar({
             userName={userName}
             userEmail={userEmail}
             userImage={userImage}
+            userId={userId}
             setLogoutConfirmOpen={setLogoutConfirmOpen}
           />
         </div>

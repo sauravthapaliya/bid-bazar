@@ -37,6 +37,9 @@ export type AuctionDetail = AuctionListItem & {
   productId: string;
   bids: AuctionBidItem[];
   isOwnerView: boolean;
+  winnerId: string | null;
+  winnerLabel: string | null;
+  isViewerWinner: boolean;
 };
 
 function asIdString(value: unknown): string {
@@ -213,6 +216,22 @@ export async function getAuctionDetail(
   const sellerId = asIdString(auction.sellerId);
   const usersById = await getUsersMapByIds([sellerId]);
   const isOwnerView = Boolean(viewerUserId && idVariants(viewerUserId).some((id) => asIdString(id) === sellerId));
+  const winnerIdRaw = auction.winnerId ?? auction.highestBidderId ?? null;
+  const winnerId =
+    winnerIdRaw === null || winnerIdRaw === undefined || String(winnerIdRaw).length === 0
+      ? null
+      : asIdString(winnerIdRaw);
+  const isViewerWinner = Boolean(
+    winnerId &&
+      viewerUserId &&
+      idVariants(viewerUserId).some((candidate) => asIdString(candidate) === winnerId)
+  );
+  const winnerNames = winnerId ? await getUsersMapByIds([winnerId]) : new Map<string, string>();
+  const winnerLabel = winnerId
+    ? isOwnerView
+      ? winnerNames.get(winnerId) ?? "Winning bidder"
+      : bidderMask(winnerId)
+    : null;
 
   const bids = await bidsCollection
     .find({
@@ -249,5 +268,8 @@ export async function getAuctionDetail(
     productId: asIdString(auction.productId),
     bids: bidRows,
     isOwnerView,
+    winnerId,
+    winnerLabel,
+    isViewerWinner,
   };
 }

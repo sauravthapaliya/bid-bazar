@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { getAuctionDetail } from "@/lib/auction-market";
+import { finalizeExpiredAuctions } from "@/lib/auction-finalization";
 import { connectToDatabase } from "@/lib/mongodb";
 import { COLLECTIONS } from "@/types/entities";
 
@@ -51,6 +52,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    await finalizeExpiredAuctions();
     const session = await auth();
     const auction = await getAuctionDetail(id, session?.user?.id ?? null);
     if (!auction) {

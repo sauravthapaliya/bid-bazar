@@ -144,7 +144,7 @@ export default function AuctionsPage() {
 
                 <CardContent className="flex flex-1 flex-col gap-4">
                   <div className="flex flex-wrap gap-2">
-                    <Badge variant="secondary" className="text-xs font-medium">
+                    <Badge variant="neutral" className="text-xs font-medium">
                       {auction.category}
                     </Badge>
                     <Badge variant="outline" className="text-xs font-medium">

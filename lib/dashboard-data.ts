@@ -20,7 +20,7 @@ export type DashboardBidItem = {
   currentPrice: number;
   endsAt: Date | null;
   status: string;
-  isWinning: boolean;
+  bidState: "winning" | "outbid" | "won" | "lost" | "cancelled";
   totalBids: number;
   lastBidAt: Date | null;
 };
@@ -193,8 +193,21 @@ async function getMyBids(userId: string, limit = 6): Promise<DashboardBidItem[]>
       if (!auction) return null;
 
       const product = productById.get(asIdString(auction.productId));
+      const status = resolveAuctionStatus(auction.status, auction.endsAt);
       const highestBidderId = auction.highestBidderId ? asIdString(auction.highestBidderId) : null;
-      const isWinning = highestBidderId != null && userIds.some((id) => asIdString(id) === highestBidderId);
+      const winnerId = auction.winnerId ? asIdString(auction.winnerId) : highestBidderId;
+      const isLeading = highestBidderId != null && userIds.some((id) => asIdString(id) === highestBidderId);
+      const isWinner = winnerId != null && userIds.some((id) => asIdString(id) === winnerId);
+      const bidState =
+        status === "ended"
+          ? isWinner
+            ? "won"
+            : "lost"
+          : status === "cancelled"
+            ? "cancelled"
+            : isLeading
+              ? "winning"
+              : "outbid";
 
       return {
         auctionId,
@@ -202,8 +215,8 @@ async function getMyBids(userId: string, limit = 6): Promise<DashboardBidItem[]>
         myBid: Number(bid.amount ?? 0),
         currentPrice: Number(auction.currentPrice ?? 0),
         endsAt: toDate(auction.endsAt),
-        status: resolveAuctionStatus(auction.status, auction.endsAt),
-        isWinning,
+        status,
+        bidState,
         totalBids: Number(auction.totalBids ?? 0),
         lastBidAt: toDate(bid.createdAt),
       } satisfies DashboardBidItem;

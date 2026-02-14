@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ensureDatabaseSchema } from "@/lib/db-schema";
+import { finalizeExpiredAuctions } from "@/lib/auction-finalization";
 import { getLiveAuctions } from "@/lib/auction-market";
 import { COLLECTIONS } from "@/types/entities";
 
@@ -128,6 +129,7 @@ export async function POST(request: Request) {
 
 export async function GET() {
   try {
+    await finalizeExpiredAuctions();
     const auctions = await getLiveAuctions(40);
     return NextResponse.json({ ok: true, auctions }, { status: 200 });
   } catch (error) {

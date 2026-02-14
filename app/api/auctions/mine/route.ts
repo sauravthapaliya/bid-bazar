@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
 import { connectToDatabase } from "@/lib/mongodb";
+import { finalizeExpiredAuctions } from "@/lib/auction-finalization";
 import { COLLECTIONS } from "@/types/entities";
 
 type IdLike = string | ObjectId;
@@ -59,6 +60,7 @@ export async function GET() {
 
     const sellerIds = idVariants(session.user.id);
     const { db } = await connectToDatabase();
+    await finalizeExpiredAuctions(db);
     const auctionsCollection = db.collection<Record<string, unknown>>(COLLECTIONS.auctions);
     const productsCollection = db.collection<Record<string, unknown>>(COLLECTIONS.products);
 

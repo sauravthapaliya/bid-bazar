@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -50,7 +51,7 @@ type BidRow = {
   currentPrice: number;
   endsAt: string | null;
   status: string;
-  isWinning: boolean;
+  bidState: "winning" | "outbid" | "won" | "lost" | "cancelled";
   totalBids: number;
   lastBidAt: string | null;
 };
@@ -147,6 +148,7 @@ export default function DashboardPage() {
   const imageName = useMemo(() => imageFile?.name ?? "No file selected", [imageFile]);
   const name = session?.user?.name ?? "User";
   const email = session?.user?.email ?? "Unknown";
+  const bidderId = session?.user?.id ? String(session.user.id) : "Unavailable";
   const initials = name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "U";
 
   const dashboard = dashboardQuery.data;
@@ -158,13 +160,34 @@ export default function DashboardPage() {
     unreadNotifications: 0,
   };
   const myBids = dashboard?.myBids ?? [];
+  const latestMyBids = myBids.slice(0, 2);
   const watchlist = dashboard?.watchlist ?? [];
 
-  const statusVariant = (status: string): "success" | "warning" | "secondary" | "outline" => {
-    if (status === "live") return "success";
-    if (status === "expired") return "warning";
-    if (status === "ended") return "secondary";
-    return "outline";
+  const statusVariant = (
+    status: string,
+  ): "statusLive" | "statusScheduled" | "statusExpired" | "statusEnded" | "statusCancelled" | "neutral" => {
+    if (status === "live") return "statusLive";
+    if (status === "scheduled") return "statusScheduled";
+    if (status === "expired") return "statusExpired";
+    if (status === "ended") return "statusEnded";
+    if (status === "cancelled") return "statusCancelled";
+    return "neutral";
+  };
+  const bidStateVariant = (
+    bidState: BidRow["bidState"],
+  ): "bidWinning" | "bidOutbid" | "bidWon" | "bidLost" | "bidCancelled" => {
+    if (bidState === "winning") return "bidWinning";
+    if (bidState === "outbid") return "bidOutbid";
+    if (bidState === "won") return "bidWon";
+    if (bidState === "lost") return "bidLost";
+    return "bidCancelled";
+  };
+  const bidStateLabel = (bidState: BidRow["bidState"]) => {
+    if (bidState === "winning") return "Winning";
+    if (bidState === "outbid") return "Outbid";
+    if (bidState === "won") return "Won";
+    if (bidState === "lost") return "Lost";
+    return "Cancelled";
   };
 
   function applyFile(file: File | null) {
@@ -268,6 +291,9 @@ export default function DashboardPage() {
                   </p>
                   <p className="truncate text-sm text-muted-foreground">
                     {email}
+                  </p>
+                  <p className="truncate font-mono text-xs text-muted-foreground">
+                    Bidder ID: {bidderId}
                   </p>
                 </div>
                 <Badge
@@ -619,30 +645,31 @@ export default function DashboardPage() {
                     My Bids
                   </CardTitle>
                   <CardDescription className="mt-0.5">
-                    Track your active and past bids
+                    Latest 2 bids from your activity
                   </CardDescription>
                 </div>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/my-bids">Browse All Bidding</Link>
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="p-6">
-              {myBids.length === 0 ? (
+              {latestMyBids.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
                   <ClipboardList className="h-8 w-8 mb-2 opacity-20" />
                   <p className="text-sm italic">No bids yet</p>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {myBids.map((item, index) => (
+                  {latestMyBids.map((item, index) => (
                     <div key={item.auctionId + index}>
                       <div className="flex flex-col gap-3 rounded-lg border p-4 hover:shadow-sm transition-shadow">
                         <div className="flex items-start justify-between gap-3">
                           <h4 className="truncate text-sm font-semibold">
                             {item.title}
                           </h4>
-                          <Badge
-                            variant={item.isWinning ? "default" : "outline"}
-                          >
-                            {item.isWinning ? "Winning" : "Outbid"}
+                          <Badge variant={bidStateVariant(item.bidState)}>
+                            {bidStateLabel(item.bidState)}
                           </Badge>
                         </div>
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
@@ -662,14 +689,16 @@ export default function DashboardPage() {
                             </span>
                           </span>
                           <span>
-                            Ends{" "}
+                            {item.status === "ended" || item.status === "cancelled"
+                              ? "Ended "
+                              : "Ends "}
                             {item.endsAt
                               ? dateTime.format(new Date(item.endsAt))
                               : "Unknown"}
                           </span>
                         </div>
                       </div>
-                      {index < myBids.length - 1 && (
+                      {index < latestMyBids.length - 1 && (
                         <Separator className="my-4" />
                       )}
                     </div>
@@ -720,7 +749,7 @@ export default function DashboardPage() {
                           <span className="text-foreground font-medium">
                             {currency.format(item.currentPrice)}
                           </span>{" "}
-                          • Ends{" "}
+                          - Ends{" "}
                           {item.endsAt
                             ? dateTime.format(new Date(item.endsAt))
                             : "Unknown"}
@@ -740,3 +769,4 @@ export default function DashboardPage() {
     </main>
   );
 }
+

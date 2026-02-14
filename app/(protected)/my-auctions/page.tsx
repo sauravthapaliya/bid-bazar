@@ -74,7 +74,14 @@ type EditFormState = {
   durationUnit: DurationUnit;
 };
 
-const CONDITIONS: Condition[] = ["new", "like_new", "excellent", "good", "fair", "poor"];
+const CONDITIONS: Condition[] = [
+  "new",
+  "like_new",
+  "excellent",
+  "good",
+  "fair",
+  "poor",
+];
 const CATEGORY_OPTIONS: CategoryOption[] = [
   "smartphones",
   "laptops",
@@ -93,12 +100,15 @@ function formatLabel(value: string) {
   return value.replaceAll("_", " ").replace(/\b\w/g, (x) => x.toUpperCase());
 }
 
-function formatConditionWithAge(condition: string, conditionAgeDays: number | null) {
+function formatConditionWithAge(
+  condition: string,
+  conditionAgeDays: number | null,
+) {
   const base = formatLabel(condition);
   const shouldShowAge =
     (condition === "new" || condition === "like_new") &&
     typeof conditionAgeDays === "number";
-  return shouldShowAge ? `${base} • ${conditionAgeDays} days used` : base;
+  return shouldShowAge ? `${base} - ${conditionAgeDays} days used` : base;
 }
 
 function toDurationHours(value: number, unit: DurationUnit) {
@@ -138,7 +148,9 @@ export default function MyAuctionsPage() {
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [form, setForm] = useState<EditFormState | null>(null);
   const [newImageFile, setNewImageFile] = useState<File | null>(null);
-  const [newImagePreviewUrl, setNewImagePreviewUrl] = useState<string | null>(null);
+  const [newImagePreviewUrl, setNewImagePreviewUrl] = useState<string | null>(
+    null,
+  );
   const [dragOver, setDragOver] = useState(false);
 
   const money = useMemo(
@@ -148,7 +160,7 @@ export default function MyAuctionsPage() {
         currency: "NPR",
         maximumFractionDigits: 0,
       }),
-    []
+    [],
   );
 
   const dateTime = useMemo(
@@ -159,7 +171,7 @@ export default function MyAuctionsPage() {
         hour: "numeric",
         minute: "2-digit",
       }),
-    []
+    [],
   );
 
   useEffect(() => {
@@ -186,7 +198,9 @@ export default function MyAuctionsPage() {
   }
 
   function startEdit(item: MyAuctionItem) {
-    const matchedCategory = CATEGORY_OPTIONS.includes(item.category as CategoryOption)
+    const matchedCategory = CATEGORY_OPTIONS.includes(
+      item.category as CategoryOption,
+    )
       ? (item.category as CategoryOption)
       : "other";
     setEditingId(item.auctionId);
@@ -195,8 +209,11 @@ export default function MyAuctionsPage() {
       description: item.description,
       categoryOption: matchedCategory,
       customCategory: matchedCategory === "other" ? item.category : "",
-      condition: (CONDITIONS.includes(item.condition as Condition) ? item.condition : "good") as Condition,
-      conditionAgeDays: item.conditionAgeDays == null ? "" : String(item.conditionAgeDays),
+      condition: (CONDITIONS.includes(item.condition as Condition)
+        ? item.condition
+        : "good") as Condition,
+      conditionAgeDays:
+        item.conditionAgeDays == null ? "" : String(item.conditionAgeDays),
       bidIncrement: String(item.bidIncrement),
       startPrice: String(item.startPrice),
       durationValue: "",
@@ -213,7 +230,10 @@ export default function MyAuctionsPage() {
 
   async function saveEdit(auctionId: string) {
     if (!form || isSaving) return;
-    const category = form.categoryOption === "other" ? form.customCategory.trim() : form.categoryOption.trim();
+    const category =
+      form.categoryOption === "other"
+        ? form.customCategory.trim()
+        : form.categoryOption.trim();
     if (!category) return;
 
     const durationRaw = Number(form.durationValue);
@@ -234,8 +254,15 @@ export default function MyAuctionsPage() {
       if (newImageFile) {
         const uploadForm = new FormData();
         uploadForm.append("file", newImageFile);
-        const uploadRes = await fetch("/api/uploads", { method: "POST", body: uploadForm });
-        const uploadJson = (await uploadRes.json()) as { ok?: boolean; fileId?: string; message?: string };
+        const uploadRes = await fetch("/api/uploads", {
+          method: "POST",
+          body: uploadForm,
+        });
+        const uploadJson = (await uploadRes.json()) as {
+          ok?: boolean;
+          fileId?: string;
+          message?: string;
+        };
         if (!uploadRes.ok || !uploadJson.ok || !uploadJson.fileId) {
           setError(uploadJson.message ?? "Unable to upload image.");
           return;
@@ -281,7 +308,9 @@ export default function MyAuctionsPage() {
 
     setIsCancellingId(auctionId);
     try {
-      const res = await fetch(`/api/auctions/${auctionId}`, { method: "DELETE" });
+      const res = await fetch(`/api/auctions/${auctionId}`, {
+        method: "DELETE",
+      });
       const json = (await res.json()) as { ok?: boolean; message?: string };
       if (!res.ok || !json.ok) {
         setError(json.message ?? "Unable to cancel auction.");
@@ -301,11 +330,21 @@ export default function MyAuctionsPage() {
     }
   }
 
-  const statusVariant = (status: string): "success" | "warning" | "secondary" | "outline" => {
-    if (status === "live") return "success";
-    if (status === "expired") return "warning";
-    if (status === "ended" || status === "cancelled") return "secondary";
-    return "outline";
+  const statusVariant = (
+    status: string,
+  ):
+    | "statusLive"
+    | "statusScheduled"
+    | "statusExpired"
+    | "statusEnded"
+    | "statusCancelled"
+    | "neutral" => {
+    if (status === "live") return "statusLive";
+    if (status === "scheduled") return "statusScheduled";
+    if (status === "expired") return "statusExpired";
+    if (status === "ended") return "statusEnded";
+    if (status === "cancelled") return "statusCancelled";
+    return "neutral";
   };
 
   return (
@@ -313,7 +352,9 @@ export default function MyAuctionsPage() {
       <div className="mx-auto w-full max-w-[90rem] px-4 py-6 md:px-6 lg:px-8 lg:py-8">
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">Manage Auctions</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              My Auctions
+            </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Update, track, and control all auctions you created.
             </p>
@@ -323,7 +364,7 @@ export default function MyAuctionsPage() {
           </Button>
         </div>
 
-        {(error || myAuctionsQuery.error) ? (
+        {error || myAuctionsQuery.error ? (
           <Card className="mb-6 border-destructive/30">
             <CardContent className="p-4 text-sm text-destructive">
               {error ??
@@ -352,10 +393,18 @@ export default function MyAuctionsPage() {
                 <CardHeader className="pb-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <CardTitle className="truncate text-lg">{item.title}</CardTitle>
+                      <CardTitle className="truncate text-lg">
+                        {item.title}
+                      </CardTitle>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Created {item.createdAt ? dateTime.format(new Date(item.createdAt)) : "Unknown"} • Ends{" "}
-                        {item.endsAt ? dateTime.format(new Date(item.endsAt)) : "Unknown"}
+                        Created{" "}
+                        {item.createdAt
+                          ? dateTime.format(new Date(item.createdAt))
+                          : "Unknown"}{" "}
+                        - Ends{" "}
+                        {item.endsAt
+                          ? dateTime.format(new Date(item.endsAt))
+                          : "Unknown"}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -372,7 +421,11 @@ export default function MyAuctionsPage() {
                         type="button"
                         size="sm"
                         variant="outline"
-                        onClick={() => (editingId === item.auctionId ? stopEdit() : startEdit(item))}
+                        onClick={() =>
+                          editingId === item.auctionId
+                            ? stopEdit()
+                            : startEdit(item)
+                        }
                       >
                         {editingId === item.auctionId ? (
                           <>
@@ -397,7 +450,10 @@ export default function MyAuctionsPage() {
                             type="button"
                             size="sm"
                             variant="destructive"
-                            disabled={isCancellingId === item.auctionId || item.status === "cancelled"}
+                            disabled={
+                              isCancellingId === item.auctionId ||
+                              item.status === "cancelled"
+                            }
                           >
                             {isCancellingId === item.auctionId ? (
                               <Loader2 className="mr-1 h-4 w-4 animate-spin" />
@@ -409,14 +465,20 @@ export default function MyAuctionsPage() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                           <AlertDialogHeader>
-                            <AlertDialogTitle>Cancel this auction?</AlertDialogTitle>
+                            <AlertDialogTitle>
+                              Cancel this auction?
+                            </AlertDialogTitle>
                             <AlertDialogDescription>
-                              This will remove the listing from live market view. You can&apos;t undo this action.
+                              This will remove the listing from live market
+                              view. You can&apos;t undo this action.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Keep Auction</AlertDialogCancel>
-                            <AlertDialogAction variant="destructive" onClick={() => cancelAuction(item.auctionId)}>
+                            <AlertDialogAction
+                              variant="destructive"
+                              onClick={() => cancelAuction(item.auctionId)}
+                            >
                               Yes, Cancel Auction
                             </AlertDialogAction>
                           </AlertDialogFooter>
@@ -442,7 +504,9 @@ export default function MyAuctionsPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {item.title}
+                      </p>
                       <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
                         {item.description || "No description"}
                       </p>
@@ -450,18 +514,27 @@ export default function MyAuctionsPage() {
                   </div>
 
                   <div className="flex flex-wrap gap-2 text-xs">
-                    <Badge variant="outline">{formatLabel(item.category)}</Badge>
                     <Badge variant="outline">
-                      {formatConditionWithAge(item.condition, item.conditionAgeDays)}
+                      {formatLabel(item.category)}
                     </Badge>
-                    <Badge variant="secondary">{item.totalBids} bids</Badge>
-                    <Badge variant="outline">Current {money.format(item.currentPrice)}</Badge>
+                    <Badge variant="outline">
+                      {formatConditionWithAge(
+                        item.condition,
+                        item.conditionAgeDays,
+                      )}
+                    </Badge>
+                    <Badge variant="neutral">{item.totalBids} bids</Badge>
+                    <Badge variant="outline">
+                      Current {money.format(item.currentPrice)}
+                    </Badge>
                   </div>
 
                   {editingId === item.auctionId && form ? (
                     <div className="overflow-hidden rounded-xl border">
                       <div className="border-b bg-muted/5 px-4 py-3">
-                        <p className="text-sm font-semibold text-foreground">Edit Auction</p>
+                        <p className="text-sm font-semibold text-foreground">
+                          Edit Auction
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           Update details below and save changes.
                         </p>
@@ -474,7 +547,13 @@ export default function MyAuctionsPage() {
                                 <Label>Product Name</Label>
                                 <Input
                                   value={form.title}
-                                  onChange={(e) => setForm((prev) => (prev ? { ...prev, title: e.target.value } : prev))}
+                                  onChange={(e) =>
+                                    setForm((prev) =>
+                                      prev
+                                        ? { ...prev, title: e.target.value }
+                                        : prev,
+                                    )
+                                  }
                                   minLength={4}
                                   placeholder="e.g., iPhone 15 Pro - Titanium"
                                   required
@@ -483,7 +562,9 @@ export default function MyAuctionsPage() {
 
                               <div className="space-y-2">
                                 <Label>Category</Label>
-                                <div className={`grid gap-3 ${form.categoryOption === "other" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+                                <div
+                                  className={`grid gap-3 ${form.categoryOption === "other" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}
+                                >
                                   <Select
                                     value={form.categoryOption}
                                     onValueChange={(value) =>
@@ -491,10 +572,14 @@ export default function MyAuctionsPage() {
                                         prev
                                           ? {
                                               ...prev,
-                                              categoryOption: value as CategoryOption,
-                                              customCategory: value === "other" ? prev.customCategory : "",
+                                              categoryOption:
+                                                value as CategoryOption,
+                                              customCategory:
+                                                value === "other"
+                                                  ? prev.customCategory
+                                                  : "",
                                             }
-                                          : prev
+                                          : prev,
                                       )
                                     }
                                   >
@@ -504,7 +589,9 @@ export default function MyAuctionsPage() {
                                     <SelectContent>
                                       {CATEGORY_OPTIONS.map((entry) => (
                                         <SelectItem key={entry} value={entry}>
-                                          {entry === "other" ? "Other" : formatLabel(entry)}
+                                          {entry === "other"
+                                            ? "Other"
+                                            : formatLabel(entry)}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>
@@ -514,7 +601,12 @@ export default function MyAuctionsPage() {
                                       value={form.customCategory}
                                       onChange={(e) =>
                                         setForm((prev) =>
-                                          prev ? { ...prev, customCategory: e.target.value } : prev
+                                          prev
+                                            ? {
+                                                ...prev,
+                                                customCategory: e.target.value,
+                                              }
+                                            : prev,
                                         )
                                       }
                                       placeholder="Type your category"
@@ -531,7 +623,14 @@ export default function MyAuctionsPage() {
                                   rows={4}
                                   value={form.description}
                                   onChange={(e) =>
-                                    setForm((prev) => (prev ? { ...prev, description: e.target.value } : prev))
+                                    setForm((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            description: e.target.value,
+                                          }
+                                        : prev,
+                                    )
                                   }
                                   placeholder="Provide details about condition, accessories, and any defects..."
                                 />
@@ -539,7 +638,9 @@ export default function MyAuctionsPage() {
 
                               <div className="space-y-2">
                                 <Label>Condition</Label>
-                                <div className={`grid gap-3 ${form.condition === "new" || form.condition === "like_new" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}>
+                                <div
+                                  className={`grid gap-3 ${form.condition === "new" || form.condition === "like_new" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}
+                                >
                                   <Select
                                     value={form.condition}
                                     onValueChange={(value) =>
@@ -549,9 +650,12 @@ export default function MyAuctionsPage() {
                                               ...prev,
                                               condition: value as Condition,
                                               conditionAgeDays:
-                                                value === "new" || value === "like_new" ? prev.conditionAgeDays : "",
+                                                value === "new" ||
+                                                value === "like_new"
+                                                  ? prev.conditionAgeDays
+                                                  : "",
                                             }
-                                          : prev
+                                          : prev,
                                       )
                                     }
                                   >
@@ -566,7 +670,8 @@ export default function MyAuctionsPage() {
                                       ))}
                                     </SelectContent>
                                   </Select>
-                                  {form.condition === "new" || form.condition === "like_new" ? (
+                                  {form.condition === "new" ||
+                                  form.condition === "like_new" ? (
                                     <Input
                                       type="number"
                                       min={0}
@@ -574,7 +679,13 @@ export default function MyAuctionsPage() {
                                       value={form.conditionAgeDays}
                                       onChange={(e) =>
                                         setForm((prev) =>
-                                          prev ? { ...prev, conditionAgeDays: e.target.value } : prev
+                                          prev
+                                            ? {
+                                                ...prev,
+                                                conditionAgeDays:
+                                                  e.target.value,
+                                              }
+                                            : prev,
                                         )
                                       }
                                     />
@@ -583,7 +694,9 @@ export default function MyAuctionsPage() {
                               </div>
 
                               <div className="space-y-2">
-                                <Label>Extend / Reset Duration (optional)</Label>
+                                <Label>
+                                  Extend / Reset Duration (optional)
+                                </Label>
                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                   <Input
                                     type="number"
@@ -591,13 +704,28 @@ export default function MyAuctionsPage() {
                                     placeholder="24"
                                     value={form.durationValue}
                                     onChange={(e) =>
-                                      setForm((prev) => (prev ? { ...prev, durationValue: e.target.value } : prev))
+                                      setForm((prev) =>
+                                        prev
+                                          ? {
+                                              ...prev,
+                                              durationValue: e.target.value,
+                                            }
+                                          : prev,
+                                      )
                                     }
                                   />
                                   <Select
                                     value={form.durationUnit}
                                     onValueChange={(value) =>
-                                      setForm((prev) => (prev ? { ...prev, durationUnit: value as DurationUnit } : prev))
+                                      setForm((prev) =>
+                                        prev
+                                          ? {
+                                              ...prev,
+                                              durationUnit:
+                                                value as DurationUnit,
+                                            }
+                                          : prev,
+                                      )
                                     }
                                   >
                                     <SelectTrigger className="w-full">
@@ -621,11 +749,19 @@ export default function MyAuctionsPage() {
                                   min={1}
                                   value={form.startPrice}
                                   onChange={(e) =>
-                                    setForm((prev) => (prev ? { ...prev, startPrice: e.target.value } : prev))
+                                    setForm((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            startPrice: e.target.value,
+                                          }
+                                        : prev,
+                                    )
                                   }
                                 />
                                 <p className="text-[11px] text-muted-foreground">
-                                  Start price updates only apply before any bids.
+                                  Start price updates only apply before any
+                                  bids.
                                 </p>
                               </div>
 
@@ -636,7 +772,14 @@ export default function MyAuctionsPage() {
                                   min={1}
                                   value={form.bidIncrement}
                                   onChange={(e) =>
-                                    setForm((prev) => (prev ? { ...prev, bidIncrement: e.target.value } : prev))
+                                    setForm((prev) =>
+                                      prev
+                                        ? {
+                                            ...prev,
+                                            bidIncrement: e.target.value,
+                                          }
+                                        : prev,
+                                    )
                                   }
                                 />
                               </div>
@@ -644,12 +787,16 @@ export default function MyAuctionsPage() {
                           </div>
 
                           <div className="flex flex-col gap-4 lg:col-span-1">
-                            <Label className="font-semibold">Gallery Image</Label>
+                            <Label className="font-semibold">
+                              Gallery Image
+                            </Label>
                             {newImagePreviewUrl || item.imageUrl ? (
                               <div className="relative h-[320px] overflow-hidden rounded-xl border bg-slate-50 shadow-sm dark:bg-slate-900">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
-                                  src={newImagePreviewUrl ?? item.imageUrl ?? ""}
+                                  src={
+                                    newImagePreviewUrl ?? item.imageUrl ?? ""
+                                  }
                                   alt={form.title}
                                   className="h-full w-full object-contain"
                                 />
@@ -676,19 +823,27 @@ export default function MyAuctionsPage() {
                                 onDrop={(e) => {
                                   e.preventDefault();
                                   setDragOver(false);
-                                  applyNewImage(e.dataTransfer.files?.[0] || null);
+                                  applyNewImage(
+                                    e.dataTransfer.files?.[0] || null,
+                                  );
                                 }}
                               >
                                 <div className="p-4 text-center">
                                   <Upload className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
-                                  <p className="text-sm font-medium">Upload Item Photo</p>
-                                  <p className="mt-2 text-xs text-muted-foreground">JPG, PNG or WebP</p>
+                                  <p className="text-sm font-medium">
+                                    Upload Item Photo
+                                  </p>
+                                  <p className="mt-2 text-xs text-muted-foreground">
+                                    JPG, PNG or WebP
+                                  </p>
                                 </div>
                                 <input
                                   type="file"
                                   className="hidden"
                                   accept="image/*"
-                                  onChange={(e) => applyNewImage(e.target.files?.[0] || null)}
+                                  onChange={(e) =>
+                                    applyNewImage(e.target.files?.[0] || null)
+                                  }
                                 />
                               </label>
                             )}
@@ -699,11 +854,16 @@ export default function MyAuctionsPage() {
                                 type="file"
                                 className="hidden"
                                 accept="image/*"
-                                onChange={(e) => applyNewImage(e.target.files?.[0] || null)}
+                                onChange={(e) =>
+                                  applyNewImage(e.target.files?.[0] || null)
+                                }
                               />
                             </label>
                             <p className="truncate text-[11px] italic text-muted-foreground">
-                              File: {newImageFile ? newImageFile.name : "Current image will be kept"}
+                              File:{" "}
+                              {newImageFile
+                                ? newImageFile.name
+                                : "Current image will be kept"}
                             </p>
                           </div>
                         </div>
@@ -713,7 +873,11 @@ export default function MyAuctionsPage() {
                             Double-check pricing and duration before saving.
                           </p>
                           <div className="flex gap-2">
-                            <Button type="button" variant="outline" onClick={stopEdit}>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={stopEdit}
+                            >
                               Cancel
                             </Button>
                             <Button
@@ -723,7 +887,11 @@ export default function MyAuctionsPage() {
                               disabled={isSaving}
                               onClick={() => saveEdit(item.auctionId)}
                             >
-                              {isSaving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Save className="mr-1 h-4 w-4" />}
+                              {isSaving ? (
+                                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Save className="mr-1 h-4 w-4" />
+                              )}
                               Save Changes
                             </Button>
                           </div>

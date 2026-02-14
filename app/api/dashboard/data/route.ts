@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
+import { finalizeExpiredAuctions } from "@/lib/auction-finalization";
 import { getDashboardData } from "@/lib/dashboard-data";
 
 export async function GET() {
@@ -12,6 +13,7 @@ export async function GET() {
       );
     }
 
+    await finalizeExpiredAuctions();
     const data = await getDashboardData(session.user.id);
     return NextResponse.json({ ok: true, data }, { status: 200 });
   } catch (error) {
