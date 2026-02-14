@@ -156,7 +156,7 @@ const Homepage = async () => {
     <main className="relative min-h-screen bg-background">
       <HomeNavbar isAuthenticated={Boolean(session?.user)} />
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+      <div className="mx-auto w-full max-w-[90rem] px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
         {/* Hero Section - Redesigned with Image */}
         <section className="relative mb-24 sm:mb-32">
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
@@ -320,7 +320,6 @@ const Homepage = async () => {
                       className="object-cover"
                       priority
                     />
-
                   </div>
 
                   {/* Floating Stats Cards */}

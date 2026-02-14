@@ -21,7 +21,7 @@ export function HomeNavbar({ isAuthenticated }: HomeNavbarProps) {
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 shadow-sm">
-      <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-20 w-full max-w-[90rem] items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link
           href="/"
@@ -108,11 +108,8 @@ export function HomeNavbar({ isAuthenticated }: HomeNavbarProps) {
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div
-          id="mobile-nav"
-          className="border-t bg-background md:hidden"
-        >
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-2 px-4 py-6 sm:px-6">
+        <div id="mobile-nav" className="border-t bg-background md:hidden">
+          <div className="mx-auto flex w-full max-w-[90rem] flex-col gap-2 px-4 py-6 sm:px-6">
             {/* Mobile Navigation Links */}
             <div className="space-y-1">
               {navLinks.map((link) => (

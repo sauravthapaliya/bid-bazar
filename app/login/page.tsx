@@ -56,7 +56,7 @@ const LoginPage = () => {
     <main className="min-h-screen bg-background">
       <HomeNavbar isAuthenticated={false} />
 
-      <section className="mx-auto flex w-full max-w-7xl flex-1 items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+      <section className="mx-auto flex w-full max-w-[90rem] flex-1 items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="w-full max-w-md">
           <Card className="shadow-sm">
             <CardHeader className="space-y-2">

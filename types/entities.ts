@@ -69,6 +69,7 @@ export interface ProductEntity extends BaseTimestamps {
   description: string;
   category: string;
   condition: ProductCondition;
+  conditionAgeDays?: number | null;
   images: ProductImage[];
   status: ProductStatus;
   tags: string[];
