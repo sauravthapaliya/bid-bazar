@@ -29,9 +29,8 @@ export function HomeNavbar({ isAuthenticated }: HomeNavbarProps) {
           className="group flex items-center gap-3 transition-transform hover:scale-105"
           onClick={() => setMenuOpen(false)}
         >
-          <div className="relative flex items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 p-2.5 shadow-lg transition-all group-hover:shadow-xl">
-            <Gavel className="size-5 text-white" />
-            <div className="absolute -inset-1 rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 opacity-0 transition-opacity group-hover:opacity-20" />
+          <div className="relative flex items-center justify-center rounded-xl bg-primary p-2.5 shadow-lg transition-all group-hover:shadow-xl">
+            <Gavel className="size-5 text-primary-foreground" />
           </div>
           <div>
             <p className="text-lg font-bold leading-none tracking-tight">
@@ -64,7 +63,7 @@ export function HomeNavbar({ isAuthenticated }: HomeNavbarProps) {
             <Button
               asChild
               size="default"
-              className="rounded-full bg-gradient-to-r from-blue-600 to-violet-600 font-semibold shadow-md transition-all hover:shadow-lg"
+              className="rounded-full bg-primary font-semibold text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg"
             >
               <Link href="/dashboard">Dashboard</Link>
             </Button>
@@ -81,7 +80,7 @@ export function HomeNavbar({ isAuthenticated }: HomeNavbarProps) {
               <Button
                 asChild
                 size="default"
-                className="rounded-full bg-gradient-to-r from-blue-600 to-violet-600 font-semibold shadow-md transition-all hover:shadow-lg"
+                className="rounded-full bg-primary font-semibold text-primary-foreground shadow-md transition-all hover:bg-primary/90 hover:shadow-lg"
               >
                 <Link href="/register">Get Started</Link>
               </Button>
@@ -131,7 +130,7 @@ export function HomeNavbar({ isAuthenticated }: HomeNavbarProps) {
               {isAuthenticated ? (
                 <Button
                   asChild
-                  className="w-full rounded-full bg-gradient-to-r from-blue-600 to-violet-600 font-semibold shadow-md"
+                  className="w-full rounded-full bg-primary font-semibold text-primary-foreground shadow-md hover:bg-primary/90"
                   size="lg"
                 >
                   <Link href="/dashboard" onClick={() => setMenuOpen(false)}>
@@ -152,7 +151,7 @@ export function HomeNavbar({ isAuthenticated }: HomeNavbarProps) {
                   </Button>
                   <Button
                     asChild
-                    className="w-full rounded-full bg-gradient-to-r from-blue-600 to-violet-600 font-semibold shadow-md"
+                    className="w-full rounded-full bg-primary font-semibold text-primary-foreground shadow-md hover:bg-primary/90"
                     size="lg"
                   >
                     <Link href="/register" onClick={() => setMenuOpen(false)}>

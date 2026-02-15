@@ -49,8 +49,8 @@ export function HomeFooter() {
               href="/"
               className="inline-flex items-center gap-3 transition-transform hover:scale-105"
             >
-              <div className="flex items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 p-2.5 shadow-lg">
-                <Gavel className="size-5 text-white" />
+              <div className="flex items-center justify-center rounded-xl bg-primary p-2.5 shadow-lg">
+                <Gavel className="size-5 text-primary-foreground" />
               </div>
               <div>
                 <p className="text-lg font-bold leading-none tracking-tight">
@@ -71,11 +71,11 @@ export function HomeFooter() {
             {/* Contact Info */}
             <div className="mt-6 space-y-3">
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <MapPin className="size-4 text-blue-600" />
+                <MapPin className="size-4 text-primary" />
                 <span>Pokhara, Nepal</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <Mail className="size-4 text-blue-600" />
+                <Mail className="size-4 text-primary" />
                 <a
                   href="mailto:support@bidbzar.com"
                   className="hover:text-foreground"
@@ -84,7 +84,7 @@ export function HomeFooter() {
                 </a>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <Phone className="size-4 text-blue-600" />
+                <Phone className="size-4 text-primary" />
                 <a href="tel:+9771234567890" className="hover:text-foreground">
                   +977 123-456-7890
                 </a>
@@ -104,7 +104,7 @@ export function HomeFooter() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-blue-600"
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {link.label}
                     </Link>
@@ -123,7 +123,7 @@ export function HomeFooter() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-blue-600"
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {link.label}
                     </Link>
@@ -142,7 +142,7 @@ export function HomeFooter() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-blue-600"
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {link.label}
                     </Link>
@@ -171,10 +171,10 @@ export function HomeFooter() {
                   href={social.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group rounded-lg border-2 border-muted bg-background p-2 transition-all hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                  className="group rounded-lg border-2 border-muted bg-background p-2 transition-all hover:border-border hover:bg-accent"
                   aria-label={social.label}
                 >
-                  <social.icon className="size-4 text-muted-foreground transition-colors group-hover:text-blue-600" />
+                  <social.icon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" />
                 </a>
               ))}
             </div>

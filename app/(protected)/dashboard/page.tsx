@@ -6,11 +6,13 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  ArrowUpRight,
   Bell,
   CircleCheckBig,
   ClipboardList,
   Eye,
   HandCoins,
+  Heart,
   Zap,
   Upload,
   X,
@@ -720,22 +722,25 @@ export default function DashboardPage() {
                     Watchlist
                   </CardTitle>
                   <CardDescription className="mt-0.5">
-                    Auctions you're monitoring
+                    Auctions you are monitoring
                   </CardDescription>
                 </div>
+                <Button asChild size="sm" variant="outline">
+                  <Link href="/watchlist">Manage Watchlist</Link>
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="p-6">
               {watchlist.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                  <Eye className="h-8 w-8 mb-2 opacity-20" />
+                  <Heart className="h-8 w-8 mb-2 opacity-20" />
                   <p className="text-sm italic">No items in watchlist</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {watchlist.map((item, index) => (
                     <div key={item.watchlistId}>
-                      <div className="flex flex-col gap-3 rounded-lg border p-4 hover:shadow-sm transition-shadow">
+                      <div className="flex flex-col gap-3 rounded-lg border p-4 hover:shadow-sm transition-shadow bg-gradient-to-r from-background via-background to-primary/[0.03]">
                         <div className="flex items-start justify-between gap-3">
                           <h4 className="truncate text-sm font-semibold">
                             {item.title}
@@ -744,15 +749,33 @@ export default function DashboardPage() {
                             {item.status}
                           </Badge>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          Current:{" "}
-                          <span className="text-foreground font-medium">
-                            {currency.format(item.currentPrice)}
-                          </span>{" "}
-                          - Ends{" "}
-                          {item.endsAt
-                            ? dateTime.format(new Date(item.endsAt))
-                            : "Unknown"}
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
+                          <span>
+                            Current:{" "}
+                            <span className="text-foreground font-medium">
+                              {currency.format(item.currentPrice)}
+                            </span>
+                          </span>
+                          <span>
+                            Ends{" "}
+                            {item.endsAt
+                              ? dateTime.format(new Date(item.endsAt))
+                              : "Unknown"}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-muted-foreground">
+                            Added{" "}
+                            {item.addedAt
+                              ? dateTime.format(new Date(item.addedAt))
+                              : "recently"}
+                          </p>
+                          <Button asChild size="sm" variant="outline" className="gap-1.5">
+                            <Link href={`/auctions/${item.auctionId}`}>
+                              View
+                              <ArrowUpRight className="h-3.5 w-3.5" />
+                            </Link>
+                          </Button>
                         </div>
                       </div>
                       {index < watchlist.length - 1 && (

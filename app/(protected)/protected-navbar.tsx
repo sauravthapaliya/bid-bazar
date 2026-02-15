@@ -9,6 +9,7 @@ import {
   Gavel,
   GavelIcon,
   HandCoins,
+  Heart,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -47,6 +48,7 @@ type Props = {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/watchlist", label: "Watchlist", icon: Heart },
   { href: "/my-bids", label: "My Bids", icon: HandCoins },
   { href: "/my-auctions", label: "My Auctions", icon: ListChecks },
   { href: "/auctions", label: "Live Market", icon: GavelIcon },
@@ -141,6 +143,15 @@ function UserMenu({
           </div>
         </div>
 
+        <DropdownMenuItem
+          className="h-10 cursor-pointer rounded-xl font-medium"
+          asChild
+        >
+          <Link href="/watchlist">
+            <Heart className="mr-3 h-4 w-4" />
+            <span>Watchlist</span>
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem
           className="h-10 cursor-pointer rounded-xl font-medium"
           asChild

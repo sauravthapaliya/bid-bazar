@@ -4,9 +4,7 @@ import {
   ArrowRight,
   Gavel,
   ShieldCheck,
-  Timer,
   Trophy,
-  Sparkles,
   TrendingUp,
   Users,
   Zap,
@@ -144,10 +142,10 @@ const processCards = [
 ];
 
 const trustIndicators = [
-  { icon: CheckCircle2, text: "SSL Encrypted", color: "text-green-600" },
-  { icon: Lock, text: "Secure Payments", color: "text-blue-600" },
-  { icon: ShieldCheck, text: "Verified Sellers", color: "text-violet-600" },
-  { icon: Award, text: "Money-Back Guarantee", color: "text-amber-600" },
+  { icon: CheckCircle2, text: "SSL Encrypted" },
+  { icon: Lock, text: "Secure Payments" },
+  { icon: ShieldCheck, text: "Verified Sellers" },
+  { icon: Award, text: "Money-Back Guarantee" },
 ];
 
 const money = new Intl.NumberFormat("en-NP", {
@@ -173,15 +171,14 @@ const Homepage = async () => {
     <main className="relative min-h-screen bg-background">
       <HomeNavbar isAuthenticated={isAuthenticated} />
 
-      <div className="mx-auto w-full max-w-[90rem] px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+      <div className="mx-auto w-full max-w-[90rem] px-4 py-12 sm:px-6 lg:px-8">
         {/* Hero Section */}
         <section className="relative mb-24 sm:mb-32">
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
             {/* Left Column - Content */}
             <div className="space-y-8">
               <div className="inline-flex animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                <div className="group relative inline-flex items-center gap-2 rounded-full border-2 border-blue-600 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition-all hover:bg-blue-100 hover:shadow-md dark:border-blue-500 dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900">
-                  <Sparkles className="size-4" />
+                <div className="group relative inline-flex items-center gap-2 rounded-full border-2 border-border bg-muted px-4 py-2 text-sm font-medium text-foreground shadow-sm transition-all hover:bg-accent">
                   <span>Nepal's Most Trusted Auction Platform</span>
                 </div>
               </div>
@@ -195,7 +192,7 @@ const Homepage = async () => {
                   Where Every Bid
                   <br />
                   <span className="relative inline-block">
-                    <span className="bg-gradient-to-r from-blue-600 via-violet-600 to-blue-600 bg-clip-text text-transparent">
+                    <span className="bg-primary bg-clip-text text-transparent">
                       Tells a Story
                     </span>
                     <svg
@@ -248,7 +245,7 @@ const Homepage = async () => {
                   <Button
                     asChild
                     size="lg"
-                    className="group h-14 gap-2 rounded-full bg-blue-600 px-8 text-base font-semibold shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30"
+                    className="group h-14 gap-2 rounded-full bg-primary px-8 text-base font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
                   >
                     <Link href="/dashboard">
                       <span>Open Dashboard</span>
@@ -260,7 +257,7 @@ const Homepage = async () => {
                     <Button
                       asChild
                       size="lg"
-                      className="group h-14 gap-2 rounded-full bg-blue-600 px-8 text-base font-semibold shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-600/30"
+                      className="group h-14 gap-2 rounded-full bg-primary px-8 text-base font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
                     >
                       <Link href="/register">
                         <span>Start Bidding Free</span>
@@ -271,7 +268,7 @@ const Homepage = async () => {
                       asChild
                       size="lg"
                       variant="outline"
-                      className="group h-14 gap-2 rounded-full border-2 px-8 text-base font-semibold transition-all hover:border-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                      className="group h-14 gap-2 rounded-full border-2 px-8 text-base font-semibold transition-all hover:border-border hover:bg-accent"
                     >
                       <Link href="/login">
                         <PlayCircle className="size-5" />
@@ -292,7 +289,7 @@ const Homepage = async () => {
                     key={idx}
                     className="flex items-center gap-2 text-muted-foreground"
                   >
-                    <indicator.icon className={`size-4 ${indicator.color}`} />
+                    <indicator.icon className="size-4 text-primary" />
                     <span className="font-medium">{indicator.text}</span>
                   </div>
                 ))}
@@ -305,11 +302,9 @@ const Homepage = async () => {
               style={{ animationDelay: "200ms" }}
             >
               <div className="relative px-6 py-8">
-                <div className="absolute -inset-4 rounded-3xl bg-gradient-to-br from-blue-500/20 via-violet-500/20 to-blue-500/20 blur-3xl" />
-
                 {/* Image Card */}
-                <div className="relative overflow-hidden rounded-3xl border-2 border-muted bg-gradient-to-br from-blue-50 to-violet-50 p-8 shadow-2xl dark:from-blue-950/30 dark:to-violet-950/30">
-                  <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-gradient-to-br from-blue-100 to-violet-100 dark:from-blue-900/50 dark:to-violet-900/50">
+                <div className="relative overflow-hidden rounded-3xl border-2 border-muted bg-card p-8 shadow-sm">
+                  <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
                     <Image
                       src="/images/Auction_hummer_preview.jpg"
                       alt="Live auction platform showcase"
@@ -320,10 +315,10 @@ const Homepage = async () => {
                   </div>
 
                   {/* Floating Stats Cards */}
-                  <div className="absolute -bottom-2 -right-2 rounded-2xl border-2 border-background bg-card p-4 shadow-xl">
+                  <div className="absolute -bottom-2 -right-2 rounded-2xl border-2 border-background bg-card p-4 shadow-sm">
                     <div className="flex items-center gap-3">
-                      <div className="rounded-full bg-green-100 p-2 dark:bg-green-900/30">
-                        <TrendingUp className="size-5 text-green-600 dark:text-green-400" />
+                      <div className="rounded-full bg-primary/10 p-2">
+                        <TrendingUp className="size-5 text-primary" />
                       </div>
                       <div>
                         <p className="text-2xl font-bold">120+</p>
@@ -334,10 +329,10 @@ const Homepage = async () => {
                     </div>
                   </div>
 
-                  <div className="absolute -left-2 top-1/4 rounded-2xl border-2 border-background bg-card p-4 shadow-xl sm:-left-4">
+                  <div className="absolute -left-2 top-1/4 rounded-2xl border-2 border-background bg-card p-4 shadow-sm sm:-left-4">
                     <div className="flex items-center gap-3">
-                      <div className="rounded-full bg-blue-100 p-2 dark:bg-blue-900/30">
-                        <Users className="size-5 text-blue-600 dark:text-blue-400" />
+                      <div className="rounded-full bg-primary/10 p-2">
+                        <Users className="size-5 text-primary" />
                       </div>
                       <div>
                         <p className="text-2xl font-bold">8.5K+</p>
@@ -355,92 +350,67 @@ const Homepage = async () => {
             className="mt-20 grid animate-in fade-in slide-in-from-bottom-14 gap-6 duration-1000 sm:grid-cols-2 lg:grid-cols-4"
             style={{ animationDelay: "500ms" }}
           >
-            {stats.map((stat, idx) => {
-              const colorClasses = {
-                blue: "bg-blue-600 bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-900",
-                green:
-                  "bg-green-600 bg-green-50 dark:bg-green-950/50 border-green-200 dark:border-green-900",
-                violet:
-                  "bg-violet-600 bg-violet-50 dark:bg-violet-950/50 border-violet-200 dark:border-violet-900",
-                amber:
-                  "bg-amber-600 bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-900",
-              };
-
-              return (
-                <Card
-                  key={idx}
-                  className={`group relative overflow-hidden border-2 ${colorClasses[stat.color as keyof typeof colorClasses]} transition-all duration-300 hover:scale-105 hover:shadow-xl`}
-                >
-                  <CardContent className="p-6">
-                    <div
-                      className={`mb-4 inline-flex rounded-xl ${colorClasses[stat.color as keyof typeof colorClasses].split(" ")[0]} p-3 shadow-lg`}
-                    >
-                      <stat.icon className="size-6 text-white" />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-4xl font-bold tracking-tight">
-                        {stat.value}
-                      </p>
-                      <p className="font-semibold text-foreground">
-                        {stat.label}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {stat.description}
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+            {stats.map((stat, idx) => (
+              <Card
+                key={idx}
+                className="group relative overflow-hidden border-2 border-border bg-card transition-all duration-300 hover:scale-105"
+              >
+                <CardContent className="p-6">
+                  <div className="mb-4 inline-flex rounded-xl bg-primary p-3 shadow-sm">
+                    <stat.icon className="size-6 text-primary-foreground" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-4xl font-bold tracking-tight">
+                      {stat.value}
+                    </p>
+                    <p className="font-semibold text-foreground">
+                      {stat.label}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {stat.description}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </section>
 
         {/* Live Market Section */}
-        <section id="live-market" className="mb-24 scroll-mt-24 sm:mb-32">
-          <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <Badge
-                variant="secondary"
-                className="mb-4 rounded-full px-4 py-2 text-sm font-medium"
-              >
-                <Gavel className="mr-2 inline size-4" />
-                Live Market Auctions
-              </Badge>
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                Place Your Bid
-              </h2>
-              <p className="mt-2 max-w-2xl text-base text-muted-foreground">
-                See the latest live auctions. To participate in bidding, sign in
-                or create your account first.
-              </p>
+        {featuredAuctions.length > 0 ? (
+          <section id="live-market" className="mb-24 scroll-mt-24 sm:mb-32">
+            <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <Badge
+                  variant="secondary"
+                  className="mb-4 rounded-full px-4 py-2 text-sm font-medium"
+                >
+                  <Gavel className="mr-2 inline size-4" />
+                  Live Market Auctions
+                </Badge>
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                  Place Your Bid
+                </h2>
+                <p className="mt-2 max-w-2xl text-base text-muted-foreground">
+                  See the latest live auctions. To participate in bidding, sign
+                  in or create your account first.
+                </p>
+              </div>
+
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                <Button asChild variant="outline">
+                  <Link href={isAuthenticated ? "/auctions" : "/login"}>
+                    Browse All Auctions
+                  </Link>
+                </Button>
+              </div>
             </div>
 
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-              <Button asChild variant="outline">
-                <Link href={isAuthenticated ? "/auctions" : "/login"}>
-                  Browse All Auctions
-                </Link>
-              </Button>
-            </div>
-          </div>
-
-          {featuredAuctions.length === 0 ? (
-            <Card className="border shadow-sm">
-              <CardContent className="py-10 text-center">
-                <p className="text-base font-medium text-foreground">
-                  No live auctions at the moment
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Please check back soon.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
               {featuredAuctions.map((auction) => (
                 <Card
                   key={auction.id}
-                  className="group flex h-full flex-col overflow-hidden border shadow-sm transition-all hover:shadow-md"
+                  className="group flex h-full flex-col overflow-hidden border shadow-sm transition-all"
                 >
                   <div className="relative aspect-[16/10] overflow-hidden bg-muted">
                     {auction.imageUrl ? (
@@ -519,8 +489,8 @@ const Homepage = async () => {
                 </Card>
               ))}
             </div>
-          )}
-        </section>
+          </section>
+        ) : null}
 
         {/* Features Section */}
         <section id="features" className="mb-24 scroll-mt-24 sm:mb-32">
@@ -542,53 +512,33 @@ const Homepage = async () => {
           </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {featureCards.map((feature, idx) => {
-              const colorClasses = {
-                blue: "bg-blue-500 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
-                green:
-                  "bg-green-500 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
-                orange:
-                  "bg-orange-500 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800",
-                violet:
-                  "bg-violet-500 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800",
-                rose: "bg-rose-500 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800",
-                cyan: "bg-cyan-500 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800",
-              };
-
-              return (
-                <Card
-                  key={idx}
-                  className="group relative overflow-hidden border-2 transition-all duration-300 hover:scale-105 hover:shadow-2xl"
-                >
-                  <CardHeader className="space-y-4 p-8">
-                    <div className="flex items-start justify-between">
-                      <div
-                        className={`rounded-xl ${colorClasses[feature.color as keyof typeof colorClasses].split(" ")[0]}/10 p-3 ring-2 ${colorClasses[feature.color as keyof typeof colorClasses].split(" ")[2]}`}
-                      >
-                        <feature.icon
-                          className={`size-7 ${colorClasses[feature.color as keyof typeof colorClasses].split(" ")[0]}`}
-                        />
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className="text-xs font-semibold"
-                      >
-                        {feature.highlight}
-                      </Badge>
+            {featureCards.map((feature, idx) => (
+              <Card
+                key={idx}
+                className="group relative overflow-hidden border-2 border-border transition-all duration-300 hover:scale-105"
+              >
+                <CardHeader className="space-y-4 p-8">
+                  <div className="flex items-start justify-between">
+                    <div className="rounded-xl bg-primary/10 p-3 ring-2 ring-border">
+                      <feature.icon className="size-7 text-primary" />
                     </div>
+                    <Badge
+                      variant="secondary"
+                      className="text-xs font-semibold"
+                    >
+                      {feature.highlight}
+                    </Badge>
+                  </div>
 
-                    <div className="space-y-3">
-                      <CardTitle className="text-2xl">
-                        {feature.title}
-                      </CardTitle>
-                      <CardDescription className="text-base leading-relaxed">
-                        {feature.description}
-                      </CardDescription>
-                    </div>
-                  </CardHeader>
-                </Card>
-              );
-            })}
+                  <div className="space-y-3">
+                    <CardTitle className="text-2xl">{feature.title}</CardTitle>
+                    <CardDescription className="text-base leading-relaxed">
+                      {feature.description}
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+              </Card>
+            ))}
           </div>
         </section>
 
@@ -605,70 +555,47 @@ const Homepage = async () => {
           </div>
 
           <div className="grid gap-8 md:grid-cols-3">
-            {processCards.map((item, idx) => {
-              const colorClasses = {
-                blue: "bg-blue-600 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800",
-                violet:
-                  "bg-violet-600 bg-violet-50 dark:bg-violet-950/30 border-violet-200 dark:border-violet-800",
-                green:
-                  "bg-green-600 bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800",
-              };
+            {processCards.map((item, idx) => (
+              <div key={idx} className="relative">
+                {/* Connector Line */}
+                {idx < processCards.length - 1 && (
+                  <div className="absolute left-full top-20 hidden w-full md:block">
+                    <div className="mx-4 border-t-2 border-dashed border-muted-foreground/30" />
+                  </div>
+                )}
 
-              return (
-                <div key={idx} className="relative">
-                  {/* Connector Line */}
-                  {idx < processCards.length - 1 && (
-                    <div className="absolute left-full top-20 hidden w-full md:block">
-                      <div className="mx-4 border-t-2 border-dashed border-muted-foreground/30" />
+                <Card className="group relative h-full overflow-hidden border-2 border-border bg-card transition-all duration-300 hover:scale-95">
+                  <CardHeader className="space-y-6 p-8">
+                    <div className="flex items-center justify-between">
+                      <div className="inline-flex items-center gap-3 rounded-full bg-primary px-5 py-2.5 text-primary-foreground shadow-sm">
+                        <span className="text-sm font-bold">STEP</span>
+                        <span className="text-2xl font-bold">{item.step}</span>
+                      </div>
+                      <div className="rounded-xl bg-primary/10 p-3">
+                        <item.icon className="size-6 text-primary" />
+                      </div>
                     </div>
-                  )}
 
-                  <Card
-                    className={`group relative h-full overflow-hidden border-2 ${colorClasses[item.color as keyof typeof colorClasses]} transition-all duration-300 hover:scale-105 hover:shadow-2xl`}
-                  >
-                    <CardHeader className="space-y-6 p-8">
-                      <div className="flex items-center justify-between">
-                        <div
-                          className={`inline-flex items-center gap-3 rounded-full ${colorClasses[item.color as keyof typeof colorClasses].split(" ")[0]} px-5 py-2.5 text-white shadow-lg`}
-                        >
-                          <span className="text-sm font-bold">STEP</span>
-                          <span className="text-2xl font-bold">
-                            {item.step}
-                          </span>
-                        </div>
-                        <div
-                          className={`rounded-xl ${colorClasses[item.color as keyof typeof colorClasses].split(" ")[0]}/10 p-3`}
-                        >
-                          <item.icon
-                            className={`size-6 ${colorClasses[item.color as keyof typeof colorClasses].split(" ")[0]}`}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <CardTitle className="text-2xl">{item.title}</CardTitle>
-                        <CardDescription className="text-base leading-relaxed">
-                          {item.description}
-                        </CardDescription>
-                      </div>
-                    </CardHeader>
-                  </Card>
-                </div>
-              );
-            })}
+                    <div className="space-y-3">
+                      <CardTitle className="text-2xl">{item.title}</CardTitle>
+                      <CardDescription className="text-base leading-relaxed">
+                        {item.description}
+                      </CardDescription>
+                    </div>
+                  </CardHeader>
+                </Card>
+              </div>
+            ))}
           </div>
         </section>
 
         {/* Testimonial/Social Proof Section */}
         <section className="mb-24 sm:mb-32">
-          <div className="rounded-3xl border-2 border-muted bg-muted p-12 text-center shadow-lg">
+          <div className="rounded-3xl border-2 border-muted bg-muted p-12 text-center shadow-sm">
             <div className="mx-auto max-w-3xl space-y-6">
               <div className="flex justify-center gap-1">
                 {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className="size-8 fill-amber-400 text-amber-400"
-                  />
+                  <Star key={i} className="size-8 fill-current text-chart-4" />
                 ))}
               </div>
               <blockquote className="text-2xl font-semibold leading-relaxed sm:text-3xl">
@@ -689,14 +616,14 @@ const Homepage = async () => {
         {/* Final CTA Section */}
         <section
           id="cta"
-          className="relative overflow-hidden rounded-3xl bg-blue-600 p-12 shadow-2xl sm:p-16 lg:p-20"
+          className="relative overflow-hidden rounded-3xl border bg-primary p-12 text-primary-foreground shadow-sm sm:p-16 lg:p-20"
         >
           <div className="relative z-10 mx-auto max-w-4xl text-center">
             <div className="mb-8 space-y-4">
-              <h3 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
+              <h3 className="text-4xl font-bold tracking-tight sm:text-5xl">
                 Ready to Win Your Next Auction?
               </h3>
-              <p className="mx-auto max-w-2xl text-xl text-white/90">
+              <p className="mx-auto max-w-2xl text-xl text-primary-foreground/90">
                 Join 8,500+ verified bidders and sellers on Nepal's most trusted
                 auction platform. Sign up free and start exploring live auctions
                 today.
@@ -707,7 +634,7 @@ const Homepage = async () => {
               <Button
                 asChild
                 size="lg"
-                className="group h-14 gap-3 rounded-full bg-white px-10 text-lg font-bold text-blue-600 shadow-2xl transition-all hover:bg-white/95"
+                className="group h-14 gap-3 rounded-full bg-background px-10 text-lg font-bold text-foreground shadow-sm transition-all hover:bg-background/95"
               >
                 <Link href={session?.user ? "/dashboard" : "/register"}>
                   {session?.user ? "Go to Dashboard" : "Get Started Free"}
@@ -719,14 +646,14 @@ const Homepage = async () => {
                   asChild
                   size="lg"
                   variant="outline"
-                  className="h-14 rounded-full border-2 border-white bg-white/20 px-10 text-lg font-bold text-white transition-all hover:bg-white/30"
+                  className="h-14 rounded-full border-2 border-primary-foreground/40 bg-primary-foreground/10 px-10 text-lg font-bold text-primary-foreground transition-all hover:bg-primary-foreground/20"
                 >
                   <Link href="/login">Sign In</Link>
                 </Button>
               )}
             </div>
 
-            <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-white/80">
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-6 text-primary-foreground/80">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="size-5" />
                 <span className="text-sm font-medium">

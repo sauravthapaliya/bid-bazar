@@ -4,7 +4,7 @@ import { use, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clock3, HandCoins, Trophy } from "lucide-react";
+import { Clock3, HandCoins, Heart, Loader2, Trophy } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -56,6 +56,10 @@ type Params = {
   }>;
 };
 
+type WatchlistStatusResponse = {
+  watched: boolean;
+};
+
 async function fetchAuctionDetail(id: string): Promise<AuctionDetail> {
   const res = await fetch(`/api/auctions/${id}`);
   const json = (await res.json()) as {
@@ -67,6 +71,19 @@ async function fetchAuctionDetail(id: string): Promise<AuctionDetail> {
     throw new Error(json.message ?? "Unable to load auction.");
   }
   return json.auction;
+}
+
+async function fetchWatchlistStatus(id: string): Promise<WatchlistStatusResponse> {
+  const res = await fetch(`/api/watchlist/${id}`);
+  const json = (await res.json()) as {
+    ok?: boolean;
+    watched?: boolean;
+    message?: string;
+  };
+  if (!res.ok || !json.ok || typeof json.watched !== "boolean") {
+    throw new Error(json.message ?? "Unable to load watchlist status.");
+  }
+  return { watched: json.watched };
 }
 
 const money = new Intl.NumberFormat("en-NP", {
@@ -113,6 +130,7 @@ export default function AuctionDetailPage({ params }: Params) {
   const [bidAmount, setBidAmount] = useState("");
   const [bidError, setBidError] = useState<string | null>(null);
   const [isBidding, setIsBidding] = useState(false);
+  const [isTogglingWatchlist, setIsTogglingWatchlist] = useState(false);
 
   const auctionQuery = useQuery({
     queryKey: queryKeys.auctionDetail(id),
@@ -120,6 +138,11 @@ export default function AuctionDetailPage({ params }: Params) {
   });
 
   const auction = auctionQuery.data;
+  const watchlistStatusQuery = useQuery({
+    queryKey: queryKeys.watchlistStatus(id),
+    queryFn: () => fetchWatchlistStatus(id),
+    enabled: Boolean(session?.user?.id && auction && !auction.isOwnerView),
+  });
   const now = new Date();
   const endsAt = auction?.endsAt ? new Date(auction.endsAt) : null;
   const hasExpired = Boolean(
@@ -143,6 +166,7 @@ export default function AuctionDetailPage({ params }: Params) {
     return Math.round(auction.currentPrice + auction.bidIncrement);
   }, [auction]);
   const viewerId = session?.user?.id ? String(session.user.id) : null;
+  const isWatched = Boolean(watchlistStatusQuery.data?.watched);
   const winnerBid = useMemo(() => {
     if (!auction?.winnerId) return null;
 
@@ -205,6 +229,36 @@ export default function AuctionDetailPage({ params }: Params) {
       setBidError("Unable to place bid.");
     } finally {
       setIsBidding(false);
+    }
+  }
+
+  async function toggleWatchlist() {
+    if (!session?.user?.id || !auction || auction.isOwnerView || isTogglingWatchlist) return;
+
+    setIsTogglingWatchlist(true);
+    try {
+      const res = await fetch(
+        isWatched ? `/api/watchlist/${id}` : "/api/watchlist",
+        isWatched
+          ? { method: "DELETE" }
+          : {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ auctionId: id }),
+            },
+      );
+      const json = (await res.json()) as { ok?: boolean; message?: string };
+      if (!res.ok || !json.ok) {
+        throw new Error(json.message ?? "Unable to update watchlist.");
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.watchlistStatus(id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.watchlist() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboardData() }),
+      ]);
+    } finally {
+      setIsTogglingWatchlist(false);
     }
   }
 
@@ -359,6 +413,46 @@ export default function AuctionDetailPage({ params }: Params) {
           </div>
 
           <aside className="space-y-6 lg:sticky lg:top-20 lg:h-fit">
+            <Card className="overflow-hidden border shadow-sm">
+              <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Personal Tracking
+                </p>
+                <h3 className="mt-1 text-lg font-semibold text-foreground">Watchlist</h3>
+              </div>
+              <CardContent className="space-y-4 pt-5">
+                {!session?.user ? (
+                  <Button asChild className="w-full">
+                    <Link href="/login">Sign In</Link>
+                  </Button>
+                ) : auction.isOwnerView ? (
+                  <p className="text-sm text-muted-foreground">
+                    Your own listing is already visible in your seller dashboard.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-sm text-muted-foreground">
+                      Save this listing to monitor activity and access it quickly from your watchlist.
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={toggleWatchlist}
+                      disabled={isTogglingWatchlist || watchlistStatusQuery.isLoading}
+                      className="w-full gap-2"
+                      variant={isWatched ? "outline" : "default"}
+                    >
+                      {isTogglingWatchlist || watchlistStatusQuery.isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Heart className={`h-4 w-4 ${isWatched ? "fill-current" : ""}`} />
+                      )}
+                      {isWatched ? "Saved to Watchlist" : "Add to Watchlist"}
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
             <Card className="border shadow-sm">
               <CardHeader className="border-b pb-4">
                 <CardTitle className="text-lg font-semibold text-foreground">
