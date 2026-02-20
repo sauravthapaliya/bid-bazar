@@ -39,6 +39,13 @@ async function createIndexes() {
     db.collection(COLLECTIONS.transactions).createIndex({ sellerId: 1, createdAt: -1 }),
     db.collection(COLLECTIONS.transactions).createIndex({ auctionId: 1 }, { unique: true }),
     db.collection(COLLECTIONS.transactions).createIndex({ status: 1, createdAt: -1 }),
+    db
+      .collection(COLLECTIONS.transactions)
+      .createIndex({ esewaTransactionUuid: 1 }, { unique: true, sparse: true }),
+    db
+      .collection(COLLECTIONS.transactions)
+      .createIndex({ khaltiPidx: 1 }, { unique: true, sparse: true }),
+    db.collection(COLLECTIONS.transactions).createIndex({ provider: 1, status: 1, createdAt: -1 }),
   ]);
 }
 

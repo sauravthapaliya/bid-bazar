@@ -2,6 +2,7 @@
 
 import { use, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clock3, HandCoins, Heart, Loader2, Trophy } from "lucide-react";
@@ -60,6 +61,14 @@ type WatchlistStatusResponse = {
   watched: boolean;
 };
 
+type AuctionPaymentStatus = {
+  id: string;
+  status: string;
+  amount: number;
+  provider: string | null;
+  paidAt: string | Date | null;
+} | null;
+
 async function fetchAuctionDetail(id: string): Promise<AuctionDetail> {
   const res = await fetch(`/api/auctions/${id}`);
   const json = (await res.json()) as {
@@ -71,6 +80,19 @@ async function fetchAuctionDetail(id: string): Promise<AuctionDetail> {
     throw new Error(json.message ?? "Unable to load auction.");
   }
   return json.auction;
+}
+
+async function fetchAuctionPaymentStatus(id: string): Promise<AuctionPaymentStatus> {
+  const res = await fetch(`/api/transactions?auctionId=${encodeURIComponent(id)}`);
+  const json = (await res.json()) as {
+    ok?: boolean;
+    transaction?: AuctionPaymentStatus;
+    message?: string;
+  };
+  if (!res.ok || !json.ok) {
+    throw new Error(json.message ?? "Unable to load payment status.");
+  }
+  return json.transaction ?? null;
 }
 
 async function fetchWatchlistStatus(id: string): Promise<WatchlistStatusResponse> {
@@ -125,12 +147,15 @@ function statusVariant(
 
 export default function AuctionDetailPage({ params }: Params) {
   const { id } = use(params);
+  const router = useRouter();
   const queryClient = useQueryClient();
   const { data: session } = useSession();
   const [bidAmount, setBidAmount] = useState("");
   const [bidError, setBidError] = useState<string | null>(null);
   const [isBidding, setIsBidding] = useState(false);
   const [isTogglingWatchlist, setIsTogglingWatchlist] = useState(false);
+  const [isPreparingPayment, setIsPreparingPayment] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const auctionQuery = useQuery({
     queryKey: queryKeys.auctionDetail(id),
@@ -153,6 +178,11 @@ export default function AuctionDetailPage({ params }: Params) {
   );
   const effectiveStatus = hasExpired ? "expired" : auction?.status;
   const isFinalized = effectiveStatus === "ended" || effectiveStatus === "cancelled";
+  const paymentStatusQuery = useQuery({
+    queryKey: queryKeys.auctionPaymentStatus(id),
+    queryFn: () => fetchAuctionPaymentStatus(id),
+    enabled: Boolean(session?.user?.id && auction?.isViewerWinner && isFinalized),
+  });
   const bidderSummaryLabel = isFinalized ? "Winner" : "Highest Bidder";
   const isLive = Boolean(
     auction &&
@@ -194,6 +224,8 @@ export default function AuctionDetailPage({ params }: Params) {
 
     return selected;
   }, [auction]);
+  const winnerPayment = paymentStatusQuery.data;
+  const isWinnerPaymentPaid = winnerPayment?.status === "paid";
 
   async function submitBid(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -259,6 +291,44 @@ export default function AuctionDetailPage({ params }: Params) {
       ]);
     } finally {
       setIsTogglingWatchlist(false);
+    }
+  }
+
+  async function startCheckout(method: "esewa" | "khalti") {
+    if (!auction || !auction.isViewerWinner || !isFinalized || isPreparingPayment) return;
+
+    setIsPreparingPayment(true);
+    setPaymentError(null);
+
+    try {
+      const txRes = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ auctionId: auction.id }),
+      });
+      const txJson = (await txRes.json()) as {
+        ok?: boolean;
+        message?: string;
+        transactionId?: string;
+        amount?: number;
+      };
+
+      if (!txRes.ok || !txJson.ok || !txJson.transactionId) {
+        setPaymentError(txJson.message ?? "Unable to create payment transaction.");
+        return;
+      }
+
+      const amount = typeof txJson.amount === "number" ? txJson.amount : auction.currentPrice;
+      const query = new URLSearchParams({
+        transactionId: txJson.transactionId,
+        amount: String(amount),
+        productName: auction.title,
+      });
+      router.push(`/payments/${method}?${query.toString()}`);
+    } catch {
+      setPaymentError("Unable to start payment.");
+    } finally {
+      setIsPreparingPayment(false);
     }
   }
 
@@ -575,6 +645,51 @@ export default function AuctionDetailPage({ params }: Params) {
                 )}
               </CardContent>
             </Card>
+
+            {isFinalized && auction.isViewerWinner ? (
+              <Card className="border shadow-sm">
+                <CardHeader className="border-b pb-4">
+                  <CardTitle className="text-lg font-semibold text-foreground">
+                    {isWinnerPaymentPaid ? "Payment Completed" : "Complete Payment"}
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    {isWinnerPaymentPaid
+                      ? `Paid${winnerPayment?.provider ? ` via ${winnerPayment.provider}` : ""}.`
+                      : "You won this auction. Complete payment to finalize the transaction."}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-6">
+                  {paymentStatusQuery.isLoading ? (
+                    <p className="text-sm text-muted-foreground">Checking payment status...</p>
+                  ) : isWinnerPaymentPaid ? (
+                    <div className="rounded-lg border bg-primary/5 p-3 text-sm text-foreground">
+                      This auction payment is already complete.
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Button
+                        type="button"
+                        onClick={() => startCheckout("esewa")}
+                        disabled={isPreparingPayment}
+                      >
+                        Pay with eSewa
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => startCheckout("khalti")}
+                        disabled={isPreparingPayment}
+                      >
+                        Pay with Khalti
+                      </Button>
+                    </div>
+                  )}
+                  {paymentError ? (
+                    <p className="text-sm text-destructive">{paymentError}</p>
+                  ) : null}
+                </CardContent>
+              </Card>
+            ) : null}
           </aside>
         </div>
       </div>

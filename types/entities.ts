@@ -30,6 +30,7 @@ export type TransactionStatus =
   | "paid"
   | "failed"
   | "refunded";
+export type PaymentProvider = "esewa" | "khalti";
 export type NotificationType =
   | "outbid"
   | "auction_won"
@@ -129,7 +130,11 @@ export interface TransactionEntity extends BaseTimestamps {
   amount: number;
   currency: string;
   status: TransactionStatus;
-  provider: string;
+  provider: PaymentProvider;
   providerRef?: string;
   paidAt?: Date | null;
+  esewaTransactionUuid?: string | null;
+  esewaRefId?: string | null;
+  khaltiPidx?: string | null;
+  gatewayPayloadHash?: string | null;
 }

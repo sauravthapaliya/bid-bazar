@@ -75,6 +75,7 @@ export async function GET() {
     const bids = db.collection<Record<string, unknown>>(COLLECTIONS.bids);
     const auctions = db.collection<Record<string, unknown>>(COLLECTIONS.auctions);
     const products = db.collection<Record<string, unknown>>(COLLECTIONS.products);
+    const transactions = db.collection<Record<string, unknown>>(COLLECTIONS.transactions);
 
     const bidDocs = await bids
       .find({ bidderId: { $in: userIds } })
@@ -137,6 +138,21 @@ export async function GET() {
       productById.set(asIdString(product._id), product);
     }
 
+    const txRows = await transactions
+      .find({
+        buyerId: { $in: userIds },
+        $or: [
+          { auctionId: { $in: auctionIdStrings } },
+          { auctionId: { $in: auctionIdObjectIds } },
+        ],
+      } as never)
+      .toArray();
+
+    const txByAuctionId = new Map<string, (typeof txRows)[number]>();
+    for (const tx of txRows) {
+      txByAuctionId.set(asIdString(tx.auctionId), tx);
+    }
+
     const items = selectedBids
       .map((bid) => {
         const auctionKey = asIdString(bid.auctionId);
@@ -160,6 +176,19 @@ export async function GET() {
                 ? "winning"
                 : "outbid";
         const imageId = getPrimaryImageFileId(product?.images);
+        const tx = txByAuctionId.get(auctionKey);
+        const rawPaymentStatus = String(tx?.status ?? "unknown");
+        const paymentStatus =
+          rawPaymentStatus === "pending" ||
+          rawPaymentStatus === "paid" ||
+          rawPaymentStatus === "failed" ||
+          rawPaymentStatus === "authorized" ||
+          rawPaymentStatus === "refunded"
+            ? rawPaymentStatus
+            : "unknown";
+        const providerRaw = tx?.provider ? String(tx.provider) : null;
+        const paymentProvider =
+          providerRaw === "esewa" || providerRaw === "khalti" ? providerRaw : null;
 
         return {
           auctionId: auctionKey,
@@ -173,6 +202,10 @@ export async function GET() {
           bidPlacedAt: toDate(bid.createdAt),
           endsAt: toDate(auction.endsAt),
           imageUrl: imageId ? `/api/uploads/${imageId}` : null,
+          transactionId: tx?._id ? asIdString(tx._id) : null,
+          paymentStatus,
+          paymentProvider,
+          paidAt: toDate(tx?.paidAt),
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);

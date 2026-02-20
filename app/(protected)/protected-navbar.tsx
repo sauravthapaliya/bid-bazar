@@ -6,6 +6,7 @@ import { signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import {
   ChevronDown,
+  CreditCard,
   Gavel,
   GavelIcon,
   HandCoins,
@@ -50,6 +51,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/watchlist", label: "Watchlist", icon: Heart },
   { href: "/my-bids", label: "My Bids", icon: HandCoins },
+  { href: "/payments", label: "Payments", icon: CreditCard },
   { href: "/my-auctions", label: "My Auctions", icon: ListChecks },
   { href: "/auctions", label: "Live Market", icon: GavelIcon },
 ];
@@ -168,6 +170,15 @@ function UserMenu({
           <Link href="/dashboard">
             <LayoutDashboard className="mr-3 h-4 w-4" />
             <span>Dashboard</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="h-10 cursor-pointer rounded-xl font-medium"
+          asChild
+        >
+          <Link href="/payments">
+            <CreditCard className="mr-3 h-4 w-4" />
+            <span>Payments</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Clock3, Gavel, HandCoins, Loader2, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,10 @@ type MyBidItem = {
   bidPlacedAt: string | null;
   endsAt: string | null;
   imageUrl: string | null;
+  transactionId: string | null;
+  paymentStatus: "pending" | "paid" | "failed" | "authorized" | "refunded" | "unknown";
+  paymentProvider: "esewa" | "khalti" | null;
+  paidAt: string | null;
 };
 
 async function fetchMyBids(): Promise<MyBidItem[]> {
@@ -67,12 +72,13 @@ function bidStateLabel(bidState: MyBidItem["bidState"]) {
 }
 
 export default function MyBidsPage() {
+  const router = useRouter();
   const myBidsQuery = useQuery({
     queryKey: queryKeys.myBids(),
     queryFn: fetchMyBids,
   });
 
-  const items = myBidsQuery.data ?? [];
+  const items = useMemo(() => myBidsQuery.data ?? [], [myBidsQuery.data]);
 
   const money = useMemo(
     () =>
@@ -101,6 +107,18 @@ export default function MyBidsPage() {
     const won = items.filter((item) => item.bidState === "won").length;
     return { active, winning, won, total: items.length };
   }, [items]);
+
+  async function proceedToPayment(item: MyBidItem, method: "esewa" | "khalti") {
+    const query = new URLSearchParams({
+      auctionId: item.auctionId,
+      amount: String(item.currentPrice),
+      productName: item.title,
+    });
+    if (item.transactionId) {
+      query.set("transactionId", item.transactionId);
+    }
+    router.push(`/payments/${method}?${query.toString()}`);
+  }
 
   return (
     <main className="min-h-screen bg-background scroll-mt-20">
@@ -218,6 +236,39 @@ export default function MyBidsPage() {
                           </p>
                         </div>
                       </div>
+
+                      {item.bidState === "won" ? (
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant={
+                              item.paymentStatus === "paid"
+                                ? "bidWon"
+                                : item.paymentStatus === "pending" || item.paymentStatus === "authorized"
+                                  ? "bidWinning"
+                                  : "neutral"
+                            }
+                          >
+                            payment: {item.paymentStatus}
+                          </Badge>
+                          {item.paymentProvider ? (
+                            <Badge variant="outline">via {item.paymentProvider}</Badge>
+                          ) : null}
+                          {item.paymentStatus === "paid" ? (
+                            <Badge variant="outline">
+                              paid {item.paidAt ? dateTime.format(new Date(item.paidAt)) : ""}
+                            </Badge>
+                          ) : (
+                            <>
+                              <Button size="sm" onClick={() => proceedToPayment(item, "esewa")}>
+                                Pay eSewa
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={() => proceedToPayment(item, "khalti")}>
+                                Pay Khalti
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      ) : null}
 
                       <p className="mt-3 text-xs text-muted-foreground">
                         Last bid placed:{" "}
