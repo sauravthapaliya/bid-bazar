@@ -13,6 +13,17 @@ async function createIndexes() {
   await Promise.all([
     db.collection(COLLECTIONS.users).createIndex({ email: 1 }, { unique: true }),
     db.collection(COLLECTIONS.users).createIndex({ role: 1, isBlocked: 1 }),
+    db.collection(COLLECTIONS.users).createIndex({ isSellerVerified: 1, kycStatus: 1 }),
+
+    db
+      .collection(COLLECTIONS.kycSubmissions)
+      .createIndex({ userId: 1, createdAt: -1 }),
+    db
+      .collection(COLLECTIONS.kycSubmissions)
+      .createIndex({ status: 1, createdAt: -1 }),
+    db
+      .collection(COLLECTIONS.kycSubmissions)
+      .createIndex({ reviewedById: 1, reviewedAt: -1 }),
 
     db.collection(COLLECTIONS.products).createIndex({ sellerId: 1, createdAt: -1 }),
     db.collection(COLLECTIONS.products).createIndex({ slug: 1 }, { unique: true }),

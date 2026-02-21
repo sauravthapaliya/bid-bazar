@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { useSession } from "next-auth/react";
+import type { KycStatus, UserRole } from "@/types/entities";
 
 type AuthContextValue = {
   user: {
@@ -14,6 +15,9 @@ type AuthContextValue = {
     name?: string | null;
     email?: string | null;
     image?: string | null;
+    role: UserRole;
+    isSellerVerified: boolean;
+    kycStatus: KycStatus;
   } | null;
   isAuthenticated: boolean;
   isLoading: boolean;

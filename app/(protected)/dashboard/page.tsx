@@ -151,6 +151,8 @@ export default function DashboardPage() {
   const name = session?.user?.name ?? "User";
   const email = session?.user?.email ?? "Unknown";
   const bidderId = session?.user?.id ? String(session.user.id) : "Unavailable";
+  const canCreateAuction =
+    session?.user?.role === "admin" || session?.user?.isSellerVerified === true;
   const initials = name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "U";
 
   const dashboard = dashboardQuery.data;
@@ -211,6 +213,7 @@ export default function DashboardPage() {
 
   async function submitAuction(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!canCreateAuction) return;
     const resolvedCategory =
       categoryOption === "other" ? customCategory.trim() : categoryOption.trim();
     const parsedDurationValue = Number(durationValue);
@@ -369,6 +372,14 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent className="p-6">
+              {!canCreateAuction ? (
+                <div className="mb-5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
+                  Complete KYC approval before publishing auctions.{" "}
+                  <Link href="/kyc" className="font-semibold underline">
+                    Go to Complete KYC
+                  </Link>
+                </div>
+              ) : null}
               <form onSubmit={submitAuction} className="flex flex-col gap-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                   {/* LEFT COLUMN: 2/3 Width (Details) */}
@@ -622,12 +633,12 @@ export default function DashboardPage() {
                   <p className="text-xs text-muted-foreground">
                     Double-check your pricing and duration before publishing.
                   </p>
-                  <Button
-                    type="submit"
-                    size="lg"
-                    className="px-12 font-bold shadow-md"
-                    disabled={isSubmitting}
-                  >
+                    <Button
+                      type="submit"
+                      size="lg"
+                      className="px-12 font-bold shadow-md"
+                      disabled={isSubmitting || !canCreateAuction}
+                    >
                     {isSubmitting ? "Publishing..." : "Publish Auction"}
                   </Button>
                 </div>

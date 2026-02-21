@@ -15,6 +15,8 @@ import {
   ListChecks,
   LogOut,
   Menu,
+  ShieldCheck,
+  UserCheck,
   X,
 } from "lucide-react";
 import { useState } from "react";
@@ -45,6 +47,7 @@ type Props = {
   userEmail?: string | null;
   userImage?: string | null;
   userId?: string | null;
+  userRole?: "user" | "seller" | "admin";
 };
 
 const navItems = [
@@ -75,12 +78,14 @@ function UserMenu({
   userEmail,
   userImage,
   userId,
+  userRole,
   setLogoutConfirmOpen,
 }: {
   userName: string;
   userEmail?: string | null;
   userImage?: string | null;
   userId?: string | null;
+  userRole?: "user" | "seller" | "admin";
   setLogoutConfirmOpen: (open: boolean) => void;
 }) {
   const initials = getInitials(userName);
@@ -185,6 +190,26 @@ function UserMenu({
           className="h-10 cursor-pointer rounded-xl font-medium"
           asChild
         >
+          <Link href="/kyc">
+            <UserCheck className="mr-3 h-4 w-4" />
+            <span>Complete KYC</span>
+          </Link>
+        </DropdownMenuItem>
+        {userRole === "admin" ? (
+          <DropdownMenuItem
+            className="h-10 cursor-pointer rounded-xl font-medium"
+            asChild
+          >
+            <Link href="/admin/kyc">
+              <ShieldCheck className="mr-3 h-4 w-4" />
+              <span>Admin KYC</span>
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
+        <DropdownMenuItem
+          className="h-10 cursor-pointer rounded-xl font-medium"
+          asChild
+        >
           <Link href="/my-auctions">
             <ListChecks className="mr-3 h-4 w-4" />
             <span>My Auctions</span>
@@ -220,6 +245,7 @@ export default function ProtectedNavbar({
   userEmail: userEmailProp,
   userImage: userImageProp,
   userId: userIdProp,
+  userRole: userRoleProp,
 }: Props) {
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -230,6 +256,7 @@ export default function ProtectedNavbar({
   const userEmail = userEmailProp ?? session?.user?.email ?? null;
   const userImage = userImageProp ?? session?.user?.image ?? null;
   const userId = userIdProp ?? (session?.user?.id ? String(session.user.id) : null);
+  const userRole = userRoleProp ?? session?.user?.role ?? "user";
 
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -288,6 +315,7 @@ export default function ProtectedNavbar({
             userEmail={userEmail}
             userImage={userImage}
             userId={userId}
+            userRole={userRole}
             setLogoutConfirmOpen={setLogoutConfirmOpen}
           />
         </div>
@@ -357,6 +385,24 @@ export default function ProtectedNavbar({
                   </Link>
                 );
               })}
+              <Link
+                href="/kyc"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-accent hover:text-accent-foreground"
+              >
+                <UserCheck className="h-5 w-5" />
+                Complete KYC
+              </Link>
+              {userRole === "admin" ? (
+                <Link
+                  href="/admin/kyc"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-all hover:bg-accent hover:text-accent-foreground"
+                >
+                  <ShieldCheck className="h-5 w-5" />
+                  Admin KYC
+                </Link>
+              ) : null}
             </nav>
 
             {/* Sign Out */}

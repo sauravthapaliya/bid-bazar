@@ -3,6 +3,7 @@ export const COLLECTIONS = {
   accounts: "accounts",
   sessions: "sessions",
   verificationTokens: "verificationTokens",
+  kycSubmissions: "kycSubmissions",
   products: "products",
   auctions: "auctions",
   bids: "bids",
@@ -13,7 +14,9 @@ export const COLLECTIONS = {
 
 export type EntityId = string;
 
-export type UserRole = "user" | "admin";
+export type UserRole = "user" | "seller" | "admin";
+export type KycStatus = "not_submitted" | "pending" | "approved" | "rejected";
+export type KycDocumentType = "pan" | "citizenship";
 export type ProductCondition =
   | "new"
   | "like_new"
@@ -53,7 +56,26 @@ export interface UserEntity extends BaseTimestamps {
   emailVerified?: Date | null;
   role: UserRole;
   isBlocked: boolean;
+  isSellerVerified: boolean;
+  kycStatus: KycStatus;
   phone?: string | null;
+}
+
+export interface KycSubmissionEntity extends BaseTimestamps {
+  _id: EntityId;
+  userId: EntityId;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  panNumber: string;
+  citizenshipNumber: string;
+  documentType: KycDocumentType;
+  documentFileId: EntityId;
+  status: Exclude<KycStatus, "not_submitted">;
+  reviewNote?: string | null;
+  reviewedById?: EntityId | null;
+  reviewedAt?: Date | null;
 }
 
 export interface ProductImage {

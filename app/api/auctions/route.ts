@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { ensureDatabaseSchema } from "@/lib/db-schema";
 import { finalizeExpiredAuctions } from "@/lib/auction-finalization";
 import { getLiveAuctions } from "@/lib/auction-market";
+import { canSell, getCurrentUserRecord } from "@/lib/user-auth";
 import { COLLECTIONS } from "@/types/entities";
 
 const createAuctionSchema = z.object({
@@ -39,6 +40,22 @@ export async function POST(request: Request) {
         { status: 401 }
       );
     }
+    const viewer = await getCurrentUserRecord();
+    if (!viewer) {
+      return NextResponse.json(
+        { ok: false, message: "Unauthorized." },
+        { status: 401 }
+      );
+    }
+    if (!canSell(viewer)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message: "Complete and approve KYC before creating auctions.",
+        },
+        { status: 403 }
+      );
+    }
 
     const body = await request.json();
     const parsed = createAuctionSchema.safeParse(body);
@@ -63,7 +80,7 @@ export async function POST(request: Request) {
 
     const now = new Date();
     const endsAt = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
-    const sellerId = session.user.id;
+    const sellerId = viewer.id;
 
     const { db } = await connectToDatabase();
     const productResult = await db.collection(COLLECTIONS.products).insertOne({
