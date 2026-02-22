@@ -22,6 +22,7 @@ export type AuctionListItem = {
   endsAt: Date | null;
   sellerId: string;
   sellerName: string;
+  isSellerVerified: boolean;
   imageUrl: string | null;
 };
 
@@ -98,8 +99,9 @@ function mapAuctionRow(params: {
   auction: Record<string, unknown>;
   product?: Record<string, unknown>;
   sellerName: string;
+  isSellerVerified: boolean;
 }): AuctionListItem {
-  const { auction, product, sellerName } = params;
+  const { auction, product, sellerName, isSellerVerified } = params;
   const imageId = getPrimaryImageFileId(product?.images);
 
   return {
@@ -119,6 +121,7 @@ function mapAuctionRow(params: {
     endsAt: toDate(auction.endsAt),
     sellerId: asIdString(auction.sellerId),
     sellerName,
+    isSellerVerified,
     imageUrl: imageId ? `/api/uploads/${imageId}` : null,
   };
 }
@@ -186,6 +189,7 @@ export async function getLiveAuctions(limit = 30): Promise<AuctionListItem[]> {
       auction: auction as Record<string, unknown>,
       product: productById.get(asIdString(auction.productId)),
       sellerName: usersById.get(asIdString(auction.sellerId)) ?? "Seller",
+      isSellerVerified: false,
     })
   );
 }
@@ -214,6 +218,10 @@ export async function getAuctionDetail(
   } as never);
 
   const sellerId = asIdString(auction.sellerId);
+  const seller = await db.collection<Record<string, unknown>>(COLLECTIONS.users).findOne(
+    { _id: { $in: idVariants(sellerId) } } as never,
+    { projection: { name: 1, isSellerVerified: 1 } },
+  );
   const usersById = await getUsersMapByIds([sellerId]);
   const isOwnerView = Boolean(viewerUserId && idVariants(viewerUserId).some((id) => asIdString(id) === sellerId));
   const winnerIdRaw = auction.winnerId ?? auction.highestBidderId ?? null;
@@ -263,7 +271,10 @@ export async function getAuctionDetail(
     ...mapAuctionRow({
       auction: auction as Record<string, unknown>,
       product: (product as Record<string, unknown>) ?? undefined,
-      sellerName: usersById.get(sellerId) ?? "Seller",
+      sellerName:
+        (seller && typeof seller.name === "string" ? seller.name : usersById.get(sellerId)) ??
+        "Seller",
+      isSellerVerified: seller?.isSellerVerified === true,
     }),
     productId: asIdString(auction.productId),
     bids: bidRows,

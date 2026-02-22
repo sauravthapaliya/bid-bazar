@@ -17,19 +17,17 @@ import {
   Upload,
   X,
   PlusCircle,
+  AlertTriangle,
+  Loader2,
+  TrendingUp,
+  Package,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -38,6 +36,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { queryKeys } from "@/lib/query-keys";
+
+// ── Types ──────────────────────────────────────────────────────────────────
 
 type Summary = {
   activeBids: number;
@@ -81,13 +81,21 @@ async function fetchDashboardData(): Promise<DashboardResponse> {
     data?: DashboardResponse;
     message?: string;
   };
-  if (!res.ok || !json.ok || !json.data) {
+  if (!res.ok || !json.ok || !json.data)
     throw new Error(json.message ?? "Unable to load dashboard data.");
-  }
   return json.data;
 }
 
-const CONDITIONS = ["new", "like_new", "excellent", "good", "fair", "poor"] as const;
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const CONDITIONS = [
+  "new",
+  "like_new",
+  "excellent",
+  "good",
+  "fair",
+  "poor",
+] as const;
 type Condition = (typeof CONDITIONS)[number];
 const DURATION_UNITS = ["minutes", "hours", "days", "months"] as const;
 type DurationUnit = (typeof DURATION_UNITS)[number];
@@ -105,10 +113,145 @@ const CATEGORY_OPTIONS = [
 ] as const;
 type CategoryOption = (typeof CATEGORY_OPTIONS)[number];
 
+// ── Badge helpers ──────────────────────────────────────────────────────────
+
+const BID_STATE_CONFIG: Record<
+  BidRow["bidState"],
+  { label: string; className: string }
+> = {
+  winning: {
+    label: "Winning",
+    className:
+      "bg-green-500/10 text-green-700 border-green-500/20 dark:text-green-400",
+  },
+  outbid: {
+    label: "Outbid",
+    className:
+      "bg-yellow-500/10 text-yellow-700 border-yellow-500/20 dark:text-yellow-400",
+  },
+  won: {
+    label: "Won",
+    className: "bg-primary/10 text-primary border-primary/20",
+  },
+  lost: {
+    label: "Lost",
+    className: "bg-muted text-muted-foreground border-border",
+  },
+  cancelled: {
+    label: "Cancelled",
+    className: "bg-muted text-muted-foreground border-border",
+  },
+};
+
+const STATUS_CONFIG: Record<string, string> = {
+  live: "bg-green-500/10 text-green-700 border-green-500/20 dark:text-green-400",
+  scheduled:
+    "bg-blue-500/10 text-blue-700 border-blue-500/20 dark:text-blue-400",
+  ended: "bg-muted text-muted-foreground border-border",
+  expired: "bg-muted text-muted-foreground border-border",
+  cancelled: "bg-destructive/10 text-destructive border-destructive/20",
+};
+
+function BidStateBadge({ state }: { state: BidRow["bidState"] }) {
+  const c = BID_STATE_CONFIG[state];
+  return (
+    <Badge variant="outline" className={`text-xs px-2 py-0.5 ${c.className}`}>
+      {c.label}
+    </Badge>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const cls =
+    STATUS_CONFIG[status] ?? "bg-muted text-muted-foreground border-border";
+  return (
+    <Badge
+      variant="outline"
+      className={`text-xs px-2 py-0.5 capitalize ${cls}`}
+    >
+      {status}
+    </Badge>
+  );
+}
+
+// ── Section header ─────────────────────────────────────────────────────────
+
+function SectionHeader({
+  icon: Icon,
+  title,
+  description,
+  action,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 border-b border-border px-5 py-4">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="h-4 w-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-foreground leading-tight">
+          {title}
+        </p>
+        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+      </div>
+      {action}
+    </div>
+  );
+}
+
+// ── Empty state ────────────────────────────────────────────────────────────
+
+function EmptyState({
+  icon: Icon,
+  label,
+}: {
+  icon: React.ElementType;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-14 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground/40 mb-3">
+        <Icon className="h-6 w-6" />
+      </div>
+      <p className="text-sm text-muted-foreground italic">{label}</p>
+    </div>
+  );
+}
+
+// ── Form field ─────────────────────────────────────────────────────────────
+
+function Field({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label
+        htmlFor={htmlFor}
+        className="text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+      >
+        {label}
+      </Label>
+      {children}
+    </div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────
+
 export default function DashboardPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -131,7 +274,9 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl); };
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
   }, [previewUrl]);
 
   const currency = new Intl.NumberFormat("en-NP", {
@@ -139,7 +284,6 @@ export default function DashboardPage() {
     currency: "NPR",
     maximumFractionDigits: 0,
   });
-
   const dateTime = new Intl.DateTimeFormat("en-US", {
     month: "short",
     day: "numeric",
@@ -147,13 +291,31 @@ export default function DashboardPage() {
     minute: "2-digit",
   });
 
-  const imageName = useMemo(() => imageFile?.name ?? "No file selected", [imageFile]);
   const name = session?.user?.name ?? "User";
-  const email = session?.user?.email ?? "Unknown";
-  const bidderId = session?.user?.id ? String(session.user.id) : "Unavailable";
+  const email = session?.user?.email ?? "";
+  const bidderId = session?.user?.id ? String(session.user.id) : "—";
   const canCreateAuction =
     session?.user?.role === "admin" || session?.user?.isSellerVerified === true;
-  const initials = name.split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("") || "U";
+  const initials =
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]!.toUpperCase())
+      .join("") || "U";
+  const sellerVerified = session?.user?.isSellerVerified === true;
+  const sellerBadgeClass =
+    sessionStatus === "loading"
+      ? "border-border text-muted-foreground"
+      : sellerVerified
+        ? "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
+        : "border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400";
+  const sellerBadgeLabel =
+    sessionStatus === "loading"
+      ? "Loading"
+      : sellerVerified
+        ? "Seller Verified"
+        : "Not Verified";
 
   const dashboard = dashboardQuery.data;
   const isLoading = dashboardQuery.isLoading;
@@ -166,33 +328,7 @@ export default function DashboardPage() {
   const myBids = dashboard?.myBids ?? [];
   const latestMyBids = myBids.slice(0, 2);
   const watchlist = dashboard?.watchlist ?? [];
-
-  const statusVariant = (
-    status: string,
-  ): "statusLive" | "statusScheduled" | "statusExpired" | "statusEnded" | "statusCancelled" | "neutral" => {
-    if (status === "live") return "statusLive";
-    if (status === "scheduled") return "statusScheduled";
-    if (status === "expired") return "statusExpired";
-    if (status === "ended") return "statusEnded";
-    if (status === "cancelled") return "statusCancelled";
-    return "neutral";
-  };
-  const bidStateVariant = (
-    bidState: BidRow["bidState"],
-  ): "bidWinning" | "bidOutbid" | "bidWon" | "bidLost" | "bidCancelled" => {
-    if (bidState === "winning") return "bidWinning";
-    if (bidState === "outbid") return "bidOutbid";
-    if (bidState === "won") return "bidWon";
-    if (bidState === "lost") return "bidLost";
-    return "bidCancelled";
-  };
-  const bidStateLabel = (bidState: BidRow["bidState"]) => {
-    if (bidState === "winning") return "Winning";
-    if (bidState === "outbid") return "Outbid";
-    if (bidState === "won") return "Won";
-    if (bidState === "lost") return "Lost";
-    return "Cancelled";
-  };
+  const imageName = useMemo(() => imageFile?.name ?? null, [imageFile]);
 
   function applyFile(file: File | null) {
     if (!file || !file.type.startsWith("image/")) return;
@@ -215,31 +351,44 @@ export default function DashboardPage() {
     event.preventDefault();
     if (!canCreateAuction) return;
     const resolvedCategory =
-      categoryOption === "other" ? customCategory.trim() : categoryOption.trim();
+      categoryOption === "other"
+        ? customCategory.trim()
+        : categoryOption.trim();
     const parsedDurationValue = Number(durationValue);
     const durationHours = (() => {
-      if (!Number.isFinite(parsedDurationValue) || parsedDurationValue <= 0) return 0;
-      if (durationUnit === "minutes") return Math.max(1, Math.ceil(parsedDurationValue / 60));
+      if (!Number.isFinite(parsedDurationValue) || parsedDurationValue <= 0)
+        return 0;
+      if (durationUnit === "minutes")
+        return Math.max(1, Math.ceil(parsedDurationValue / 60));
       if (durationUnit === "days") return Math.round(parsedDurationValue * 24);
-      if (durationUnit === "months") return Math.round(parsedDurationValue * 24 * 30);
+      if (durationUnit === "months")
+        return Math.round(parsedDurationValue * 24 * 30);
       return Math.round(parsedDurationValue);
     })();
-    const requiresConditionAge = condition === "new" || condition === "like_new";
-    const parsedConditionAge = requiresConditionAge ? Number(conditionAgeDays) : null;
-    if (!imageFile || isSubmitting || !resolvedCategory) return;
-    if (!durationHours) return;
+    const requiresConditionAge =
+      condition === "new" || condition === "like_new";
+    const parsedConditionAge = requiresConditionAge
+      ? Number(conditionAgeDays)
+      : null;
+    if (!imageFile || isSubmitting || !resolvedCategory || !durationHours)
+      return;
     if (
       requiresConditionAge &&
-      (parsedConditionAge === null || !Number.isFinite(parsedConditionAge) || parsedConditionAge < 0)
-    ) return;
+      (parsedConditionAge === null ||
+        !Number.isFinite(parsedConditionAge) ||
+        parsedConditionAge < 0)
+    )
+      return;
     setIsSubmitting(true);
     try {
       const uploadForm = new FormData();
       uploadForm.append("file", imageFile);
-      const uploadRes = await fetch("/api/uploads", { method: "POST", body: uploadForm });
+      const uploadRes = await fetch("/api/uploads", {
+        method: "POST",
+        body: uploadForm,
+      });
       const uploadJson = (await uploadRes.json()) as { fileId?: string };
       if (!uploadRes.ok || !uploadJson.fileId) throw new Error("Upload failed");
-
       const createRes = await fetch("/api/auctions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -248,7 +397,9 @@ export default function DashboardPage() {
           description: description.trim(),
           category: resolvedCategory,
           condition,
-          conditionAgeDays: requiresConditionAge ? parsedConditionAge : undefined,
+          conditionAgeDays: requiresConditionAge
+            ? parsedConditionAge
+            : undefined,
           startPrice: Number(startPrice),
           bidIncrement: Number(bidIncrement),
           durationHours,
@@ -258,7 +409,9 @@ export default function DashboardPage() {
       const createJson = (await createRes.json()) as { auctionId?: string };
       if (createRes.ok) {
         await Promise.all([
-          queryClient.invalidateQueries({ queryKey: queryKeys.dashboardData() }),
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.dashboardData(),
+          }),
           queryClient.invalidateQueries({ queryKey: queryKeys.myAuctions() }),
           queryClient.invalidateQueries({ queryKey: queryKeys.liveAuctions() }),
         ]);
@@ -271,503 +424,506 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background scroll-mt-20">
-      <div className="mx-auto w-full max-w-[90rem] px-4 py-6 md:px-6 lg:px-8 lg:py-8">
-        {/* Profile/Header Section */}
-        <div className="mb-8 flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto w-full max-w-[90rem] px-4 py-6 md:px-6 lg:px-8 lg:py-8 space-y-8">
+        {/* ── Page header ── */}
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Dashboard
             </h1>
-            <p className="text-base text-muted-foreground">
-              Manage your auctions, track bids, and monitor your activity
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage your auctions, track bids, and monitor activity.
             </p>
           </div>
 
-          <Card className="border shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
-                  {initials}
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <p className="truncate text-base font-semibold text-foreground">
-                    {name}
-                  </p>
-                  <p className="truncate text-sm text-muted-foreground">
-                    {email}
-                  </p>
-                  <p className="truncate font-mono text-xs text-muted-foreground">
-                    Bidder ID: {bidderId}
-                  </p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="hidden shrink-0 sm:inline-flex"
-                >
-                  {isLoading ? "Loading..." : "Active"}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Profile chip */}
+          <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 sm:shrink-0">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">
+                {name}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">{email}</p>
+              <p className="font-mono text-[10px] text-muted-foreground/60 mt-0.5 truncate">
+                ID: {bidderId}
+              </p>
+            </div>
+            <Badge
+              variant="outline"
+              className={`ml-2 shrink-0 text-xs ${sellerBadgeClass}`}
+            >
+              {sellerBadgeLabel}
+            </Badge>
+          </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* ── Stat cards ── */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
               label: "Active Bids",
-              val: summary.activeBids,
+              value: summary.activeBids,
               icon: ClipboardList,
+              color: "text-blue-600 dark:text-blue-400",
+              bg: "bg-blue-500/10",
             },
             {
               label: "Won Auctions",
-              val: summary.wonAuctions,
+              value: summary.wonAuctions,
               icon: CircleCheckBig,
+              color: "text-green-600 dark:text-green-400",
+              bg: "bg-green-500/10",
             },
-            { label: "Selling Live", val: summary.sellingLive, icon: Zap },
+            {
+              label: "Selling Live",
+              value: summary.sellingLive,
+              icon: Zap,
+              color: "text-primary",
+              bg: "bg-primary/10",
+            },
             {
               label: "Unread Alerts",
-              val: summary.unreadNotifications,
+              value: summary.unreadNotifications,
               icon: Bell,
+              color: "text-yellow-600 dark:text-yellow-400",
+              bg: "bg-yellow-500/10",
             },
-          ].map((stat, i) => (
-            <Card
-              key={i}
-              className="border shadow-sm transition-shadow hover:shadow-md"
+          ].map(({ label, value, icon: Icon, color, bg }) => (
+            <div
+              key={label}
+              className="rounded-xl border border-border bg-card px-5 py-4 flex items-center gap-4"
             >
-              <CardContent className="p-6">
-                <div className="flex flex-col gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <stat.icon className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      {stat.label}
-                    </p>
-                    <p className="mt-1 text-3xl font-bold text-foreground">
-                      {stat.val}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              <div
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${bg} ${color}`}
+              >
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-foreground leading-none">
+                  {value}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">{label}</p>
+              </div>
+            </div>
           ))}
         </div>
 
+        {/* ── Bottom grid: Create Auction (full width) + Bids + Watchlist ── */}
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* REFACTORED CREATE AUCTION SECTION */}
-          <Card
+          {/* ── Create Auction ── */}
+          <div
             id="new"
-            className="border shadow-sm lg:col-span-2 overflow-hidden scroll-mt-20"
+            className="scroll-mt-20 rounded-xl border border-border bg-card overflow-hidden lg:col-span-2"
           >
-            <CardHeader className="border-b pb-5 bg-muted/5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <PlusCircle className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-xl font-semibold">
-                    Create New Auction
-                  </CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              {!canCreateAuction ? (
-                <div className="mb-5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
+            <SectionHeader
+              icon={PlusCircle}
+              title="Create New Auction"
+              description="List an item and start receiving bids immediately"
+            />
+
+            {/* KYC warning */}
+            {!canCreateAuction && (
+              <div className="mx-5 mt-4 flex items-start gap-3 rounded-xl border border-yellow-500/30 bg-yellow-500/8 px-4 py-3">
+                <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+                <p className="text-sm text-yellow-700 dark:text-yellow-400">
                   Complete KYC approval before publishing auctions.{" "}
                   <Link href="/kyc" className="font-semibold underline">
-                    Go to Complete KYC
+                    Go to KYC →
                   </Link>
-                </div>
-              ) : null}
-              <form onSubmit={submitAuction} className="flex flex-col gap-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                  {/* LEFT COLUMN: 2/3 Width (Details) */}
-                  <div className="lg:col-span-2 space-y-6">
-                    <div className="grid gap-6 sm:grid-cols-2">
-                      {/* SIDE BY SIDE: Headline & Category */}
-                      <div className="space-y-2">
-                        <Label htmlFor="title">Product Name</Label>
-                        <Input
-                          id="title"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          placeholder="e.g., iPhone 15 Pro - Titanium"
-                          required
-                          minLength={4}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Category</Label>
-                        <div
-                          className={`grid gap-3 ${categoryOption === "other" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}
-                        >
-                          <Select
-                            value={categoryOption}
-                            onValueChange={(value) => {
-                              setCategoryOption(value as CategoryOption);
-                              if (value !== "other") setCustomCategory("");
-                            }}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {CATEGORY_OPTIONS.map((item) => (
-                                <SelectItem key={item} value={item}>
-                                  {item === "other"
-                                    ? "Other"
-                                    : item
-                                        .replaceAll("_", " ")
-                                        .replace(/\b\w/g, (x) =>
-                                          x.toUpperCase(),
-                                        )}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {categoryOption === "other" ? (
-                            <Input
-                              value={customCategory}
-                              onChange={(e) =>
-                                setCustomCategory(e.target.value)
-                              }
-                              placeholder="Type your category"
-                              required
-                            />
-                          ) : null}
-                        </div>
-                        <input
-                          className="sr-only"
-                          tabIndex={-1}
-                          aria-hidden
-                          readOnly
-                          required
-                          value={
-                            categoryOption === "other"
-                              ? customCategory.trim()
-                              : categoryOption
-                          }
-                        />
-                      </div>
+                </p>
+              </div>
+            )}
 
-                      {/* FULL WIDTH: Description */}
-                      <div className="space-y-2 sm:col-span-2">
-                        <Label htmlFor="desc">Item Description</Label>
-                        <textarea
-                          id="desc"
-                          rows={4}
-                          className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
-                          value={description}
-                          onChange={(e) => setDescription(e.target.value)}
-                          placeholder="Provide details about condition, accessories, and any defects..."
-                          required
-                        />
-                      </div>
+            <form onSubmit={submitAuction} className="p-5">
+              <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                {/* Left: form fields (2/3) */}
+                <div className="lg:col-span-2 space-y-5">
+                  {/* Row 1: title + category */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Product Name" htmlFor="title">
+                      <Input
+                        id="title"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="e.g. iPhone 15 Pro — Titanium"
+                        required
+                        minLength={4}
+                        className="h-11 rounded-xl bg-background border-border focus-visible:ring-primary/50"
+                      />
+                    </Field>
 
-                      {/* SIDE BY SIDE: Condition & Duration */}
-                      <div className="space-y-2">
-                        <Label>Condition</Label>
-                        <div
-                          className={`grid gap-3 ${condition === "new" || condition === "like_new" ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"}`}
+                    <Field label="Category">
+                      <div
+                        className={`grid gap-2 ${categoryOption === "other" ? "grid-cols-2" : "grid-cols-1"}`}
+                      >
+                        <Select
+                          value={categoryOption}
+                          onValueChange={(v) => {
+                            setCategoryOption(v as CategoryOption);
+                            if (v !== "other") setCustomCategory("");
+                          }}
                         >
-                          <Select
-                            value={condition}
-                            onValueChange={(value) => {
-                              const nextCondition = value as Condition;
-                              setCondition(nextCondition);
-                              if (
-                                nextCondition !== "new" &&
-                                nextCondition !== "like_new"
-                              ) {
-                                setConditionAgeDays("");
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select condition" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {CONDITIONS.map((item) => (
-                                <SelectItem key={item} value={item}>
-                                  {item
-                                    .replaceAll("_", " ")
-                                    .replace(/\b\w/g, (x) => x.toUpperCase())}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {condition === "new" || condition === "like_new" ? (
-                            <Input
-                              type="number"
-                              min={0}
-                              value={conditionAgeDays}
-                              onChange={(e) =>
-                                setConditionAgeDays(e.target.value)
-                              }
-                              placeholder="Days used"
-                              required
-                            />
-                          ) : null}
-                        </div>
+                          <SelectTrigger className="h-11 rounded-xl bg-background border-border focus:ring-primary/50">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATEGORY_OPTIONS.map((item) => (
+                              <SelectItem key={item} value={item}>
+                                {item === "other"
+                                  ? "Other"
+                                  : item
+                                      .replaceAll("_", " ")
+                                      .replace(/\b\w/g, (x) => x.toUpperCase())}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {categoryOption === "other" && (
+                          <Input
+                            value={customCategory}
+                            onChange={(e) => setCustomCategory(e.target.value)}
+                            placeholder="Custom category"
+                            required
+                            className="h-11 rounded-xl bg-background border-border focus-visible:ring-primary/50"
+                          />
+                        )}
                       </div>
-                      <div className="space-y-2">
-                        <Label>Auction Duration</Label>
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      {/* hidden required validator */}
+                      <input
+                        className="sr-only"
+                        tabIndex={-1}
+                        aria-hidden
+                        readOnly
+                        required
+                        value={
+                          categoryOption === "other"
+                            ? customCategory.trim()
+                            : categoryOption
+                        }
+                      />
+                    </Field>
+                  </div>
+
+                  {/* Row 2: description */}
+                  <Field label="Item Description" htmlFor="desc">
+                    <Textarea
+                      id="desc"
+                      rows={4}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Describe condition, included accessories, known defects…"
+                      required
+                      className="rounded-xl bg-background border-border focus-visible:ring-primary/50 resize-none"
+                    />
+                  </Field>
+
+                  {/* Row 3: condition + duration */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Condition">
+                      <div
+                        className={`grid gap-2 ${condition === "new" || condition === "like_new" ? "grid-cols-2" : "grid-cols-1"}`}
+                      >
+                        <Select
+                          value={condition}
+                          onValueChange={(v) => {
+                            setCondition(v as Condition);
+                            if (v !== "new" && v !== "like_new")
+                              setConditionAgeDays("");
+                          }}
+                        >
+                          <SelectTrigger className="h-11 rounded-xl bg-background border-border focus:ring-primary/50">
+                            <SelectValue placeholder="Select condition" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CONDITIONS.map((item) => (
+                              <SelectItem key={item} value={item}>
+                                {item
+                                  .replaceAll("_", " ")
+                                  .replace(/\b\w/g, (x) => x.toUpperCase())}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {(condition === "new" || condition === "like_new") && (
                           <Input
                             type="number"
-                            min={1}
-                            value={durationValue}
-                            onChange={(e) => setDurationValue(e.target.value)}
-                            placeholder="24"
-                            required
-                          />
-                          <Select
-                            value={durationUnit}
-                            onValueChange={(value) =>
-                              setDurationUnit(value as DurationUnit)
+                            min={0}
+                            value={conditionAgeDays}
+                            onChange={(e) =>
+                              setConditionAgeDays(e.target.value)
                             }
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Unit" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {DURATION_UNITS.map((unit) => (
-                                <SelectItem key={unit} value={unit}>
-                                  {unit.replace(/\b\w/g, (x) =>
-                                    x.toUpperCase(),
-                                  )}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                            placeholder="Days used"
+                            required
+                            className="h-11 rounded-xl bg-background border-border focus-visible:ring-primary/50"
+                          />
+                        )}
                       </div>
+                    </Field>
 
-                      {/* SIDE BY SIDE: Pricing */}
-                      <div className="space-y-2">
-                        <Label>Starting Price (NPR)</Label>
+                    <Field label="Auction Duration">
+                      <div className="grid grid-cols-2 gap-2">
                         <Input
                           type="number"
                           min={1}
-                          value={startPrice}
-                          onChange={(e) => setStartPrice(e.target.value)}
+                          value={durationValue}
+                          onChange={(e) => setDurationValue(e.target.value)}
+                          placeholder="24"
                           required
+                          className="h-11 rounded-xl bg-background border-border focus-visible:ring-primary/50"
                         />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Bid Increment (NPR)</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={bidIncrement}
-                          onChange={(e) => setBidIncrement(e.target.value)}
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* RIGHT COLUMN: 1/3 Width (Image Upload) */}
-                  <div className="lg:col-span-1 flex flex-col gap-4">
-                    <Label className="font-semibold">Gallery Image</Label>
-                    {!previewUrl ? (
-                      <label
-                        className={`flex flex-col items-center justify-center w-full h-[320px] border-2 border-dashed rounded-xl cursor-pointer transition-colors ${dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/30 bg-muted/10 hover:bg-muted/20"}`}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          setDragOver(true);
-                        }}
-                        onDragLeave={() => setDragOver(false)}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          setDragOver(false);
-                          applyFile(e.dataTransfer.files?.[0]);
-                        }}
-                      >
-                        <div className="p-4 text-center">
-                          <Upload className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                          <p className="text-sm font-medium">
-                            Upload Item Photo
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            JPG, PNG or WebP
-                          </p>
-                        </div>
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={(e) =>
-                            applyFile(e.target.files?.[0] || null)
+                        <Select
+                          value={durationUnit}
+                          onValueChange={(v) =>
+                            setDurationUnit(v as DurationUnit)
                           }
-                          required={!imageFile}
-                        />
-                      </label>
-                    ) : (
-                      <div className="relative group w-full h-[320px] rounded-xl border bg-slate-50 dark:bg-slate-900 overflow-hidden shadow-sm">
-                        <img
-                          src={previewUrl}
-                          alt="Preview"
-                          className="w-full h-full object-contain"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors pointer-events-none" />
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="icon"
-                          className="absolute top-3 right-3 h-8 w-8 rounded-full shadow-lg"
-                          onClick={removeImage}
                         >
-                          <X className="h-4 w-4" />
-                        </Button>
+                          <SelectTrigger className="h-11 rounded-xl bg-background border-border focus:ring-primary/50">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DURATION_UNITS.map((u) => (
+                              <SelectItem key={u} value={u}>
+                                {u.replace(/\b\w/g, (x) => x.toUpperCase())}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    )}
-                    <p className="text-[11px] text-muted-foreground italic truncate">
-                      File: {imageName}
-                    </p>
+                    </Field>
+                  </div>
+
+                  {/* Row 4: pricing */}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Starting Price (NPR)" htmlFor="startPrice">
+                      <Input
+                        id="startPrice"
+                        type="number"
+                        min={1}
+                        value={startPrice}
+                        onChange={(e) => setStartPrice(e.target.value)}
+                        required
+                        className="h-11 rounded-xl bg-background border-border focus-visible:ring-primary/50"
+                      />
+                    </Field>
+                    <Field label="Bid Increment (NPR)" htmlFor="bidIncrement">
+                      <Input
+                        id="bidIncrement"
+                        type="number"
+                        min={1}
+                        value={bidIncrement}
+                        onChange={(e) => setBidIncrement(e.target.value)}
+                        required
+                        className="h-11 rounded-xl bg-background border-border focus-visible:ring-primary/50"
+                      />
+                    </Field>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-6 border-t">
-                  <p className="text-xs text-muted-foreground">
-                    Double-check your pricing and duration before publishing.
+                {/* Right: image upload (1/3) */}
+                <div className="lg:col-span-1 flex flex-col gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Gallery Image
                   </p>
-                    <Button
-                      type="submit"
-                      size="lg"
-                      className="px-12 font-bold shadow-md"
-                      disabled={isSubmitting || !canCreateAuction}
-                    >
-                    {isSubmitting ? "Publishing..." : "Publish Auction"}
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
 
-          {/* My Bids Section (Original Design) */}
-          <Card className="border shadow-sm">
-            <CardHeader className="border-b pb-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <HandCoins className="h-5 w-5" />
+                  {!previewUrl ? (
+                    <label
+                      className={`flex flex-col items-center justify-center w-full flex-1 min-h-[280px] border-2 border-dashed rounded-xl cursor-pointer transition-colors ${dragOver ? "border-primary bg-primary/5" : "border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5"}`}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragOver(true);
+                      }}
+                      onDragLeave={() => setDragOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragOver(false);
+                        applyFile(e.dataTransfer.files?.[0]);
+                      }}
+                    >
+                      <div className="flex flex-col items-center gap-2 p-6 text-center">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+                          <Upload className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">
+                            Drop image here
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            or click to browse
+                          </p>
+                          <p className="text-xs text-muted-foreground/60 mt-1">
+                            JPG, PNG, WebP
+                          </p>
+                        </div>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={(e) => applyFile(e.target.files?.[0] || null)}
+                        required={!imageFile}
+                      />
+                    </label>
+                  ) : (
+                    <div className="relative group w-full flex-1 min-h-[280px] rounded-xl border border-border bg-muted/20 overflow-hidden">
+                      <img
+                        src={previewUrl}
+                        alt="Preview"
+                        className="w-full h-full object-contain"
+                      />
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="absolute top-2.5 right-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-md transition-opacity opacity-80 hover:opacity-100"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {imageName && (
+                    <p className="text-[11px] text-muted-foreground truncate flex items-center gap-1.5">
+                      <Package className="h-3 w-3 shrink-0" />
+                      {imageName}
+                    </p>
+                  )}
                 </div>
-                <div className="flex-1">
-                  <CardTitle className="text-lg font-semibold">
-                    My Bids
-                  </CardTitle>
-                  <CardDescription className="mt-0.5">
-                    Latest 2 bids from your activity
-                  </CardDescription>
-                </div>
-                <Button asChild size="sm" variant="outline">
-                  <Link href="/my-bids">Browse All Bidding</Link>
+              </div>
+
+              {/* Submit bar */}
+              <div className="mt-6 flex items-center justify-between gap-4 border-t border-border pt-5">
+                <p className="text-xs text-muted-foreground max-w-xs hidden sm:block">
+                  Double-check pricing and duration before publishing.
+                </p>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || !canCreateAuction}
+                  className="ml-auto h-11 px-10 rounded-xl font-bold text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:-translate-y-px active:translate-y-0 disabled:opacity-50"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Publishing…
+                    </span>
+                  ) : (
+                    "Publish Auction →"
+                  )}
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent className="p-6">
+            </form>
+          </div>
+
+          {/* ── My Bids ── */}
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <SectionHeader
+              icon={HandCoins}
+              title="My Bids"
+              description="Latest 2 bids from your activity"
+              action={
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs shrink-0"
+                >
+                  <Link href="/my-bids">View All</Link>
+                </Button>
+              }
+            />
+            <div className="p-5">
               {latestMyBids.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                  <ClipboardList className="h-8 w-8 mb-2 opacity-20" />
-                  <p className="text-sm italic">No bids yet</p>
-                </div>
+                <EmptyState icon={ClipboardList} label="No bids yet" />
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {latestMyBids.map((item, index) => (
                     <div key={item.auctionId + index}>
-                      <div className="flex flex-col gap-3 rounded-lg border p-4 hover:shadow-sm transition-shadow">
+                      <div className="rounded-xl border border-border bg-background p-4 space-y-3 hover:border-primary/30 transition-colors">
                         <div className="flex items-start justify-between gap-3">
-                          <h4 className="truncate text-sm font-semibold">
+                          <p className="text-sm font-semibold text-foreground leading-tight truncate">
                             {item.title}
-                          </h4>
-                          <Badge variant={bidStateVariant(item.bidState)}>
-                            {bidStateLabel(item.bidState)}
-                          </Badge>
+                          </p>
+                          <BidStateBadge state={item.bidState} />
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-                          <Badge variant={statusVariant(item.status)}>
-                            {item.status}
-                          </Badge>
-                          <span>
-                            My Bid:{" "}
-                            <span className="text-foreground font-medium">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <StatusBadge status={item.status} />
+                          <Separator orientation="vertical" className="h-3" />
+                          <span className="text-xs text-muted-foreground">
+                            My bid:{" "}
+                            <span className="font-semibold text-foreground">
                               {currency.format(item.myBid)}
                             </span>
                           </span>
-                          <span>
+                          <Separator orientation="vertical" className="h-3" />
+                          <span className="text-xs text-muted-foreground">
                             Current:{" "}
-                            <span className="text-foreground font-medium">
+                            <span className="font-semibold text-foreground">
                               {currency.format(item.currentPrice)}
                             </span>
                           </span>
-                          <span>
-                            {item.status === "ended" || item.status === "cancelled"
-                              ? "Ended "
-                              : "Ends "}
-                            {item.endsAt
-                              ? dateTime.format(new Date(item.endsAt))
-                              : "Unknown"}
-                          </span>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                          {item.status === "ended" ||
+                          item.status === "cancelled"
+                            ? "Ended "
+                            : "Ends "}
+                          {item.endsAt
+                            ? dateTime.format(new Date(item.endsAt))
+                            : "Unknown"}
+                        </p>
                       </div>
                       {index < latestMyBids.length - 1 && (
-                        <Separator className="my-4" />
+                        <div className="h-3" />
                       )}
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Watchlist Section (Original Design) */}
-          <Card className="border shadow-sm">
-            <CardHeader className="border-b pb-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Eye className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <CardTitle className="text-lg font-semibold">
-                    Watchlist
-                  </CardTitle>
-                  <CardDescription className="mt-0.5">
-                    Auctions you are monitoring
-                  </CardDescription>
-                </div>
-                <Button asChild size="sm" variant="outline">
-                  <Link href="/watchlist">Manage Watchlist</Link>
+          {/* ── Watchlist ── */}
+          <div className="rounded-xl border border-border bg-card overflow-hidden">
+            <SectionHeader
+              icon={Eye}
+              title="Watchlist"
+              description="Auctions you are monitoring"
+              action={
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="h-7 text-xs shrink-0"
+                >
+                  <Link href="/watchlist">Manage</Link>
                 </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
+              }
+            />
+            <div className="p-5">
               {watchlist.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
-                  <Heart className="h-8 w-8 mb-2 opacity-20" />
-                  <p className="text-sm italic">No items in watchlist</p>
-                </div>
+                <EmptyState icon={Heart} label="No items in watchlist" />
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {watchlist.map((item, index) => (
                     <div key={item.watchlistId}>
-                      <div className="flex flex-col gap-3 rounded-lg border p-4 hover:shadow-sm transition-shadow bg-gradient-to-r from-background via-background to-primary/[0.03]">
+                      <div className="rounded-xl border border-border bg-background p-4 space-y-3 hover:border-primary/30 transition-colors">
                         <div className="flex items-start justify-between gap-3">
-                          <h4 className="truncate text-sm font-semibold">
+                          <p className="text-sm font-semibold text-foreground leading-tight truncate">
                             {item.title}
-                          </h4>
-                          <Badge variant={statusVariant(item.status)}>
-                            {item.status}
-                          </Badge>
+                          </p>
+                          <StatusBadge status={item.status} />
                         </div>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground">
-                          <span>
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">
                             Current:{" "}
-                            <span className="text-foreground font-medium">
+                            <span className="font-semibold text-foreground">
                               {currency.format(item.currentPrice)}
                             </span>
                           </span>
-                          <span>
+                          <Separator orientation="vertical" className="h-3" />
+                          <span className="text-xs text-muted-foreground">
                             Ends{" "}
                             {item.endsAt
                               ? dateTime.format(new Date(item.endsAt))
@@ -781,26 +937,27 @@ export default function DashboardPage() {
                               ? dateTime.format(new Date(item.addedAt))
                               : "recently"}
                           </p>
-                          <Button asChild size="sm" variant="outline" className="gap-1.5">
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1"
+                          >
                             <Link href={`/auctions/${item.auctionId}`}>
-                              View
-                              <ArrowUpRight className="h-3.5 w-3.5" />
+                              View <ArrowUpRight className="h-3 w-3" />
                             </Link>
                           </Button>
                         </div>
                       </div>
-                      {index < watchlist.length - 1 && (
-                        <Separator className="my-4" />
-                      )}
+                      {index < watchlist.length - 1 && <div className="h-3" />}
                     </div>
                   ))}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </main>
   );
 }
-

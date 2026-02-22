@@ -77,7 +77,7 @@ const LoginPage = () => {
             </h2>
             <p className="text-base text-muted-foreground leading-relaxed max-w-sm font-light">
               Join thousands of buyers and sellers competing in real-time
-              auctions. Transparent, fast, and fair â€” every time.
+              auctions. Transparent, fast, and fair every time.
             </p>
           </div>
 
@@ -142,20 +142,13 @@ const LoginPage = () => {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label
-                    htmlFor="password"
-                    className="text-xs uppercase tracking-widest text-muted-foreground font-medium"
-                  >
-                    Password
-                  </Label>
-                  <Link
-                    href="/forgot-password"
-                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
+                <Label
+                  htmlFor="password"
+                  className="text-xs uppercase tracking-widest text-muted-foreground font-medium"
+                >
+                  Password
+                </Label>
+
                 <div className="relative">
                   <Input
                     id="password"
@@ -172,7 +165,9 @@ const LoginPage = () => {
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4" />
@@ -202,7 +197,7 @@ const LoginPage = () => {
                 disabled={isSubmitting}
                 className="w-full h-12 rounded-xl text-sm font-bold tracking-tight bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:-translate-y-px active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "Signing in..." : "Sign In â†’"}
+                {isSubmitting ? "Signing in..." : "Sign in"}
               </Button>
             </form>
 

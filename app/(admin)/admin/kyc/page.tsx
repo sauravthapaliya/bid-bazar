@@ -48,6 +48,7 @@ type KycItem = {
     documentFileId: string;
     status: "pending" | "approved" | "rejected";
     reviewNote: string | null;
+    reviewedAt: string | null;
     createdAt: string | null;
   } | null;
 };
@@ -210,49 +211,26 @@ function KycDetailRow({
           </TableCell>
 
           {/* Quick actions */}
-          <TableCell className="py-3 pr-4">
-            {sub && sub.status === "pending" ? (
-              <div className="flex items-center gap-1.5">
-                <Button
-                  size="sm"
-                  className="h-7 px-2.5 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onReview(sub.id, "approve");
-                  }}
-                  disabled={isSaving}
-                >
-                  {isSaving ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Check className="h-3 w-3" />
-                  )}
-                  Approve
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="h-7 px-2.5 text-xs gap-1"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onReview(sub.id, "reject");
-                  }}
-                  disabled={isSaving}
-                >
-                  <X className="h-3 w-3" />
-                  Reject
-                </Button>
-              </div>
-            ) : (
-              <span className="text-xs text-muted-foreground">-</span>
-            )}
+          <TableCell className="py-3 text-xs text-muted-foreground max-w-[16rem] truncate">
+            {sub?.reviewNote?.trim() ? sub.reviewNote : "-"}
+          </TableCell>
+
+          {/* Approved date */}
+          <TableCell className="py-3 pr-4 text-xs text-muted-foreground">
+            {sub?.status === "approved" && sub.reviewedAt
+              ? new Date(sub.reviewedAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : "-"}
           </TableCell>
         </TableRow>
 
       {/* Expanded detail row */}
       {open && (
           <TableRow className="bg-muted/20 hover:bg-muted/20">
-            <TableCell colSpan={7} className="px-6 py-4">
+            <TableCell colSpan={8} className="px-6 py-4">
               {sub ? (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                   {/* Contact & Identity */}
@@ -300,7 +278,7 @@ function KycDetailRow({
                             {label}
                           </span>
                           <span className="text-xs font-medium text-foreground text-right">
-                            {getIdentityValue(label, value)}
+                            {value}
                           </span>
                         </div>
                       ))}
@@ -594,14 +572,17 @@ export default function AdminKycPage() {
                   Submitted
                 </TableHead>
                 <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pr-4">
-                  Actions
+                  Review Note
+                </TableHead>
+                <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pr-4">
+                  Approved Date
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {query.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-16 text-center">
+                  <TableCell colSpan={8} className="py-16 text-center">
                     <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       Loading KYC data...
@@ -610,7 +591,7 @@ export default function AdminKycPage() {
                 </TableRow>
               ) : query.error ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-16 text-center">
+                  <TableCell colSpan={8} className="py-16 text-center">
                     <div className="flex items-center justify-center gap-2 text-sm text-destructive">
                       <AlertCircle className="h-4 w-4" />
                       {(query.error as Error).message}
@@ -620,7 +601,7 @@ export default function AdminKycPage() {
               ) : items.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className="py-16 text-center text-sm text-muted-foreground"
                   >
                     No records match your filters.
@@ -664,7 +645,6 @@ export default function AdminKycPage() {
     </div>
   );
 }
-
 
 
 
