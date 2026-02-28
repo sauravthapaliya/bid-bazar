@@ -8,6 +8,7 @@ import { Clock3, Gavel, HandCoins, Loader2, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PaymentMethodButton } from "@/components/payments/payment-method-button";
 import { Separator } from "@/components/ui/separator";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -259,12 +260,17 @@ export default function MyBidsPage() {
                             </Badge>
                           ) : (
                             <>
-                              <Button size="sm" onClick={() => proceedToPayment(item, "esewa")}>
-                                Pay eSewa
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={() => proceedToPayment(item, "khalti")}>
-                                Pay Khalti
-                              </Button>
+                              <PaymentMethodButton
+                                method="esewa"
+                                size="sm"
+                                onClick={() => proceedToPayment(item, "esewa")}
+                              />
+                              <PaymentMethodButton
+                                method="khalti"
+                                size="sm"
+                                emphasis="soft"
+                                onClick={() => proceedToPayment(item, "khalti")}
+                              />
                             </>
                           )}
                         </div>

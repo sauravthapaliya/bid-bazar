@@ -26,6 +26,7 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PaymentMethodButton } from "@/components/payments/payment-method-button";
 import { queryKeys } from "@/lib/query-keys";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -930,25 +931,22 @@ export default function AuctionDetailPage({ params }: Params) {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 gap-2">
-                      <Button
+                      <PaymentMethodButton
+                        method="esewa"
                         onClick={() => startCheckout("esewa")}
                         disabled={isPreparingPayment}
-                        className="h-11 rounded-xl font-semibold text-sm"
-                      >
-                        {isPreparingPayment ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          "eSewa"
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
+                        loading={isPreparingPayment}
+                        size="default"
+                        className="h-11 rounded-xl text-sm"
+                      />
+                      <PaymentMethodButton
+                        method="khalti"
                         onClick={() => startCheckout("khalti")}
                         disabled={isPreparingPayment}
-                        className="h-11 rounded-xl font-semibold text-sm border-border hover:bg-muted"
-                      >
-                        Khalti
-                      </Button>
+                        size="default"
+                        emphasis="soft"
+                        className="h-11 rounded-xl text-sm"
+                      />
                     </div>
                   )}
                   {paymentError && (

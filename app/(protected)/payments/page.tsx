@@ -8,6 +8,7 @@ import { CheckCircle2, Clock3, CreditCard, Loader2, ReceiptText, Wallet } from "
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PaymentMethodButton } from "@/components/payments/payment-method-button";
 import { Separator } from "@/components/ui/separator";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -243,21 +244,21 @@ export default function MyPaymentsPage() {
                             </Button>
                             {isPending ? (
                               <>
-                                <Button
+                                <PaymentMethodButton
+                                  method="esewa"
                                   size="sm"
                                   disabled={isBusy}
+                                  loading={isBusy}
+                                  loadingText="Opening..."
                                   onClick={() => proceedToGateway(item, "esewa")}
-                                >
-                                  {isBusy ? "Opening..." : "Pay eSewa"}
-                                </Button>
-                                <Button
+                                />
+                                <PaymentMethodButton
+                                  method="khalti"
                                   size="sm"
-                                  variant="outline"
                                   disabled={isBusy}
+                                  emphasis="soft"
                                   onClick={() => proceedToGateway(item, "khalti")}
-                                >
-                                  {isBusy ? "Opening..." : "Pay Khalti"}
-                                </Button>
+                                />
                               </>
                             ) : (
                               <Button size="sm" variant="secondary" disabled>
