@@ -5,6 +5,7 @@ import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
+import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "@/context/auth-context";
 
 type ProvidersProps = {
@@ -36,7 +37,10 @@ export default function Providers({ children, session }: ProvidersProps) {
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            {children}
+            <Toaster position="top-center" />
+          </AuthProvider>
         </ThemeProvider>
       </SessionProvider>
     </QueryClientProvider>

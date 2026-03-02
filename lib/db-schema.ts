@@ -14,6 +14,11 @@ async function createIndexes() {
     db.collection(COLLECTIONS.users).createIndex({ email: 1 }, { unique: true }),
     db.collection(COLLECTIONS.users).createIndex({ role: 1, isBlocked: 1 }),
     db.collection(COLLECTIONS.users).createIndex({ isSellerVerified: 1, kycStatus: 1 }),
+    db.collection(COLLECTIONS.verificationTokens).createIndex({ token: 1 }, { unique: true }),
+    db.collection(COLLECTIONS.verificationTokens).createIndex({ userId: 1, createdAt: -1 }),
+    db
+      .collection(COLLECTIONS.verificationTokens)
+      .createIndex({ expires: 1 }, { expireAfterSeconds: 0 }),
 
     db
       .collection(COLLECTIONS.kycSubmissions)

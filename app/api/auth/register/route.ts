@@ -3,6 +3,7 @@ import { hash } from "bcryptjs";
 import { z } from "zod";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ensureDatabaseSchema } from "@/lib/db-schema";
+import { issueEmailVerificationToken, sendVerificationEmail } from "@/lib/email-verification";
 import { COLLECTIONS } from "@/types/entities";
 
 const registerSchema = z.object({
@@ -55,12 +56,33 @@ export async function POST(request: Request) {
       createdAt: now,
       updatedAt: now,
     });
+    const userId = result.insertedId.toString();
+
+    try {
+      const token = await issueEmailVerificationToken(userId, email);
+      await sendVerificationEmail(email, token);
+    } catch (mailError) {
+      const details =
+        mailError instanceof Error ? mailError.message : "Failed to send verification OTP";
+      return NextResponse.json(
+        {
+          ok: true,
+          userId,
+          requiresEmailVerification: true,
+          message:
+            "Account created, but we could not send verification OTP. Please use resend verification.",
+          details,
+        },
+        { status: 201 }
+      );
+    }
 
     return NextResponse.json(
       {
         ok: true,
-        message: "Account created.",
-        userId: result.insertedId.toString(),
+        message: "Account created. Please verify with OTP code before signing in.",
+        userId,
+        requiresEmailVerification: true,
       },
       { status: 201 }
     );

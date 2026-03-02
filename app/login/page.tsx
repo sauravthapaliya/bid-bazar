@@ -15,16 +15,44 @@ const LoginPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const registered = searchParams.get("registered") === "1";
+  const verified = searchParams.get("verified");
+  const prefillEmail = searchParams.get("email") || "";
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(prefillEmail);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>("");
+  const [info, setInfo] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [showResendVerification, setShowResendVerification] = useState(false);
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setError("Enter your email first to resend verification.");
+      return;
+    }
+
+    setIsResending(true);
+    setError("");
+
+    const response = await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    setIsResending(false);
+    setInfo(data?.message || "Verification OTP was sent.");
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    setInfo("");
+    setShowResendVerification(false);
     setIsSubmitting(true);
 
     const result = await signIn("credentials", {
@@ -37,7 +65,13 @@ const LoginPage = () => {
     setIsSubmitting(false);
 
     if (!result || result.error) {
+      if (result?.error?.includes("EMAIL_NOT_VERIFIED")) {
+        setError("Email is not verified. Please verify your email to sign in.");
+        setShowResendVerification(true);
+        return;
+      }
       setError("Invalid email or password.");
+      setShowResendVerification(Boolean(email));
       return;
     }
 
@@ -120,6 +154,39 @@ const LoginPage = () => {
               </p>
             </div>
 
+            {registered && (
+              <Alert className="rounded-xl border-border bg-card">
+                <AlertTitle className="text-sm font-semibold">
+                  Account created
+                </AlertTitle>
+                <AlertDescription className="text-sm">
+                  Check your email for OTP code and verify your account before signing in.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {verified === "1" && (
+              <Alert className="rounded-xl border-border bg-card">
+                <AlertTitle className="text-sm font-semibold">
+                  Email verified
+                </AlertTitle>
+                <AlertDescription className="text-sm">
+                  Your email has been verified. You can sign in now.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {verified === "0" && (
+              <Alert variant="destructive" className="rounded-xl border-destructive/30 bg-destructive/10">
+                <AlertTitle className="text-sm font-semibold text-destructive">
+                  OTP invalid
+                </AlertTitle>
+                <AlertDescription className="text-sm text-destructive/80">
+                  The OTP code is invalid or expired. Request a new one.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
@@ -192,6 +259,13 @@ const LoginPage = () => {
                 </Alert>
               )}
 
+              {info && (
+                <Alert className="rounded-xl border-border bg-card">
+                  <AlertTitle className="text-sm font-semibold">Notice</AlertTitle>
+                  <AlertDescription className="text-sm">{info}</AlertDescription>
+                </Alert>
+              )}
+
               <Button
                 type="submit"
                 disabled={isSubmitting}
@@ -199,6 +273,18 @@ const LoginPage = () => {
               >
                 {isSubmitting ? "Signing in..." : "Sign in"}
               </Button>
+
+              {showResendVerification && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-12 rounded-xl"
+                  onClick={handleResendVerification}
+                  disabled={isResending}
+                >
+                  {isResending ? "Sending..." : "Resend OTP code"}
+                </Button>
+              )}
             </form>
 
             <div className="flex items-center gap-4">

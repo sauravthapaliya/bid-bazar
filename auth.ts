@@ -18,6 +18,7 @@ type AuthUserDoc = {
   _id: { toString(): string };
   name?: string;
   email?: string;
+  emailVerified?: Date | null;
   image?: string | null;
   passwordHash?: string;
   role?: "user" | "seller" | "admin";
@@ -67,6 +68,9 @@ const authConfig: NextAuthConfig = {
 
         const isValid = await compare(password, user.passwordHash);
         if (!isValid) return null;
+        if (!user.emailVerified) {
+          throw new Error("EMAIL_NOT_VERIFIED");
+        }
 
         return {
           id: user._id.toString(),
