@@ -1,16 +1,10 @@
 import { NextResponse } from "next/server";
 import { hash } from "bcryptjs";
-import { z } from "zod";
+import { issueEmailVerificationOtp } from "@/lib/auth/email-verification-service";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ensureDatabaseSchema } from "@/lib/db-schema";
-import { issueEmailVerificationToken, sendVerificationEmail } from "@/lib/email-verification";
+import { registerSchema } from "@/lib/validators/auth";
 import { COLLECTIONS } from "@/types/entities";
-
-const registerSchema = z.object({
-  name: z.string().trim().min(2).max(60),
-  email: z.string().email(),
-  password: z.string().min(8).max(128),
-});
 
 export async function POST(request: Request) {
   try {
@@ -59,8 +53,7 @@ export async function POST(request: Request) {
     const userId = result.insertedId.toString();
 
     try {
-      const token = await issueEmailVerificationToken(userId, email);
-      await sendVerificationEmail(email, token);
+      await issueEmailVerificationOtp({ userId, email });
     } catch (mailError) {
       const details =
         mailError instanceof Error ? mailError.message : "Failed to send verification OTP";

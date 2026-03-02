@@ -1,29 +1,14 @@
 import { ensureDatabaseSchema } from "@/lib/db-schema";
-import {
-  issueEmailVerificationToken,
-  sendVerificationEmail,
-} from "@/lib/email-verification";
-import { connectToDatabase } from "@/lib/mongodb";
-import { COLLECTIONS } from "@/types/entities";
+import { resendEmailVerificationOtpForEmail } from "@/lib/auth/email-verification-service";
 import { NextResponse } from "next/server";
-import { z } from "zod";
-
-const resendSchema = z.object({
-  email: z.string().email(),
-});
-
-type UserDoc = {
-  _id: { toString(): string };
-  email?: string;
-  emailVerified?: Date | null;
-};
+import { resendVerificationSchema } from "@/lib/validators/auth";
 
 export async function POST(request: Request) {
   try {
     await ensureDatabaseSchema();
 
     const body = await request.json();
-    const parsed = resendSchema.safeParse(body);
+    const parsed = resendVerificationSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({
         ok: true,
@@ -31,27 +16,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const email = parsed.data.email.toLowerCase();
-    const { db } = await connectToDatabase();
-    const user = (await db
-      .collection(COLLECTIONS.users)
-      .findOne(
-        { email },
-        { projection: { email: 1, emailVerified: 1 } },
-      )) as UserDoc | null;
-
-    if (!user || user.emailVerified || !user.email) {
-      return NextResponse.json({
-        ok: true,
-        message: "Verification OTP was sent.",
-      });
-    }
-
-    const token = await issueEmailVerificationToken(
-      user._id.toString(),
-      user.email,
-    );
-    await sendVerificationEmail(user.email, token);
+    await resendEmailVerificationOtpForEmail(parsed.data.email);
 
     return NextResponse.json({
       ok: true,
