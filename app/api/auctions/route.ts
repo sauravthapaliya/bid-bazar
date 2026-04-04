@@ -5,6 +5,7 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { ensureDatabaseSchema } from "@/lib/db-schema";
 import { finalizeExpiredAuctions } from "@/lib/auction-finalization";
 import { getLiveAuctions } from "@/lib/auction-market";
+import { generateAuctionValuation } from "@/lib/auction-valuation";
 import { canSell, getCurrentUserRecord } from "@/lib/user-auth";
 import { COLLECTIONS } from "@/types/entities";
 
@@ -81,6 +82,16 @@ export async function POST(request: Request) {
     const now = new Date();
     const endsAt = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
     const sellerId = viewer.id;
+    const valuation = await generateAuctionValuation({
+      title,
+      description,
+      category,
+      condition,
+      conditionAgeDays: typeof conditionAgeDays === "number" ? conditionAgeDays : null,
+      startPrice,
+      bidIncrement,
+      durationHours,
+    });
 
     const { db } = await connectToDatabase();
     const productResult = await db.collection(COLLECTIONS.products).insertOne({
@@ -94,6 +105,7 @@ export async function POST(request: Request) {
       images: [{ fileId, alt: title, isPrimary: true }],
       status: "listed",
       tags: [],
+      marketValueEstimate: valuation,
       createdAt: now,
       updatedAt: now,
     });

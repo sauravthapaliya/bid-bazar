@@ -96,6 +96,22 @@ export interface ProductEntity extends BaseTimestamps {
   images: ProductImage[];
   status: ProductStatus;
   tags: string[];
+  marketValueEstimate?: {
+    estimatedMarketValue: number;
+    suggestedStartPrice: number;
+    suggestedBidIncrement: number;
+    confidence: "low" | "medium" | "high";
+    confidenceScore: number;
+    reasonCodes: string[];
+    deterministicFingerprint: string;
+    usesAiExtraction: boolean;
+    valuationSource:
+      | "openai"
+      | "fallback_no_api_key"
+      | "fallback_openai_error";
+    valuationDebug: string;
+    generatedAt: string;
+  };
 }
 
 export interface AuctionEntity extends BaseTimestamps {

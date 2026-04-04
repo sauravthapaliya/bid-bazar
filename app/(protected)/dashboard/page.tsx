@@ -74,6 +74,19 @@ type DashboardResponse = {
   watchlist: WatchlistRow[];
 };
 
+type AuctionValuationPreview = {
+  estimatedMarketValue: number;
+  suggestedStartPrice: number;
+  suggestedBidIncrement: number;
+  confidence: "low" | "medium" | "high";
+  confidenceScore: number;
+  reasonCodes: string[];
+  deterministicFingerprint: string;
+  usesAiExtraction: boolean;
+  valuationSource: "openai" | "fallback_no_api_key" | "fallback_openai_error";
+  valuationDebug: string;
+};
+
 async function fetchDashboardData(): Promise<DashboardResponse> {
   const res = await fetch("/api/dashboard/data");
   const json = (await res.json()) as {
@@ -84,6 +97,19 @@ async function fetchDashboardData(): Promise<DashboardResponse> {
   if (!res.ok || !json.ok || !json.data)
     throw new Error(json.message ?? "Unable to load dashboard data.");
   return json.data;
+}
+
+function toDurationHours(value: string, unit: DurationUnit) {
+  const parsedDurationValue = Number(value);
+  if (!Number.isFinite(parsedDurationValue) || parsedDurationValue <= 0) {
+    return 0;
+  }
+  if (unit === "minutes") {
+    return Math.max(1, Math.ceil(parsedDurationValue / 60));
+  }
+  if (unit === "days") return Math.round(parsedDurationValue * 24);
+  if (unit === "months") return Math.round(parsedDurationValue * 24 * 30);
+  return Math.round(parsedDurationValue);
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -267,11 +293,114 @@ export default function DashboardPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [valuation, setValuation] = useState<AuctionValuationPreview | null>(
+    null
+  );
+  const [isValuationLoading, setIsValuationLoading] = useState(false);
+  const [valuationError, setValuationError] = useState<string | null>(null);
 
   const dashboardQuery = useQuery({
     queryKey: queryKeys.dashboardData(),
     queryFn: fetchDashboardData,
   });
+
+  const resolvedCategory = useMemo(
+    () =>
+      categoryOption === "other" ? customCategory.trim() : categoryOption.trim(),
+    [categoryOption, customCategory]
+  );
+  const durationHours = useMemo(
+    () => toDurationHours(durationValue, durationUnit),
+    [durationUnit, durationValue]
+  );
+  const requiresConditionAge =
+    condition === "new" || condition === "like_new";
+  const parsedConditionAge = useMemo(() => {
+    if (!requiresConditionAge) return null;
+    const parsed = Number(conditionAgeDays);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  }, [conditionAgeDays, requiresConditionAge]);
+
+  useEffect(() => {
+    const hasEnoughData =
+      title.trim().length >= 4 &&
+      description.trim().length >= 20 &&
+      resolvedCategory.length >= 2 &&
+      durationHours > 0 &&
+      Number(startPrice) > 0 &&
+      Number(bidIncrement) > 0 &&
+      (!requiresConditionAge || parsedConditionAge !== null);
+
+    if (!hasEnoughData) {
+      setValuation(null);
+      setValuationError(null);
+      setIsValuationLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      setIsValuationLoading(true);
+      setValuationError(null);
+
+      try {
+        const res = await fetch("/api/auctions/valuation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: title.trim(),
+            description: description.trim(),
+            category: resolvedCategory,
+            condition,
+            conditionAgeDays: parsedConditionAge,
+            startPrice: Number(startPrice),
+            bidIncrement: Number(bidIncrement),
+            durationHours,
+          }),
+          signal: controller.signal,
+        });
+
+        const json = (await res.json()) as {
+          ok?: boolean;
+          valuation?: AuctionValuationPreview;
+          message?: string;
+        };
+
+        if (!res.ok || !json.ok || !json.valuation) {
+          throw new Error(json.message ?? "Unable to estimate market value.");
+        }
+
+        setValuation(json.valuation);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setValuation(null);
+        setValuationError(
+          error instanceof Error
+            ? error.message
+            : "Unable to estimate market value."
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsValuationLoading(false);
+        }
+      }
+    }, 450);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    bidIncrement,
+    condition,
+    description,
+    durationHours,
+    parsedConditionAge,
+    requiresConditionAge,
+    resolvedCategory,
+    startPrice,
+    title,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -318,7 +447,6 @@ export default function DashboardPage() {
         : "Not Verified";
 
   const dashboard = dashboardQuery.data;
-  const isLoading = dashboardQuery.isLoading;
   const summary = dashboard?.summary ?? {
     activeBids: 0,
     wonAuctions: 0,
@@ -350,26 +478,6 @@ export default function DashboardPage() {
   async function submitAuction(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canCreateAuction) return;
-    const resolvedCategory =
-      categoryOption === "other"
-        ? customCategory.trim()
-        : categoryOption.trim();
-    const parsedDurationValue = Number(durationValue);
-    const durationHours = (() => {
-      if (!Number.isFinite(parsedDurationValue) || parsedDurationValue <= 0)
-        return 0;
-      if (durationUnit === "minutes")
-        return Math.max(1, Math.ceil(parsedDurationValue / 60));
-      if (durationUnit === "days") return Math.round(parsedDurationValue * 24);
-      if (durationUnit === "months")
-        return Math.round(parsedDurationValue * 24 * 30);
-      return Math.round(parsedDurationValue);
-    })();
-    const requiresConditionAge =
-      condition === "new" || condition === "like_new";
-    const parsedConditionAge = requiresConditionAge
-      ? Number(conditionAgeDays)
-      : null;
     if (!imageFile || isSubmitting || !resolvedCategory || !durationHours)
       return;
     if (
@@ -720,6 +828,89 @@ export default function DashboardPage() {
                       />
                     </Field>
                   </div>
+
+                  <div className="rounded-xl border border-border bg-muted/20 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">
+                          AI Predicted Market Value
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          OpenAI estimates the market value from the details
+                          entered in this form.
+                        </p>
+                      </div>
+                      {isValuationLoading && (
+                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          Calculating
+                        </span>
+                      )}
+                    </div>
+
+                    {valuation ? (
+                      <div className="mt-4 space-y-4">
+                        <div className="grid gap-3 sm:grid-cols-3">
+                          <div className="rounded-lg border border-border bg-background p-3">
+                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                              Market Value
+                            </p>
+                            <p className="mt-1 text-lg font-bold text-foreground">
+                              {currency.format(valuation.estimatedMarketValue)}
+                            </p>
+                          </div>
+                          <div className="rounded-lg border border-border bg-background p-3">
+                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                              Suggested Start
+                            </p>
+                            <p className="mt-1 text-lg font-bold text-foreground">
+                              {currency.format(valuation.suggestedStartPrice)}
+                            </p>
+                          </div>
+                          <div className="rounded-lg border border-border bg-background p-3">
+                            <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                              Suggested Increment
+                            </p>
+                            <p className="mt-1 text-lg font-bold text-foreground">
+                              {currency.format(valuation.suggestedBidIncrement)}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <Badge variant="outline" className="capitalize">
+                            Confidence: {valuation.confidence}
+                          </Badge>
+                          <Badge variant="outline">
+                            {valuation.valuationSource === "openai"
+                              ? "OpenAI"
+                              : "Fallback"}
+                          </Badge>
+                          <span>
+                            Score {Math.round(valuation.confidenceScore * 100)}%
+                          </span>
+                          <span className="font-mono">
+                            Ref {valuation.deterministicFingerprint}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground">
+                          Signals used: {valuation.reasonCodes.join(" • ")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Debug: {valuation.valuationDebug}
+                        </p>
+                      </div>
+                    ) : valuationError ? (
+                      <p className="mt-4 text-sm text-destructive">
+                        {valuationError}
+                      </p>
+                    ) : (
+                      <p className="mt-4 text-sm text-muted-foreground">
+                        Fill in the form to generate a price estimate.
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 {/* Right: image upload (1/3) */}
@@ -795,7 +986,8 @@ export default function DashboardPage() {
               {/* Submit bar */}
               <div className="mt-6 flex items-center justify-between gap-4 border-t border-border pt-5">
                 <p className="text-xs text-muted-foreground max-w-xs hidden sm:block">
-                  Double-check pricing and duration before publishing.
+                  Compare your starting price with the predicted market value
+                  before publishing.
                 </p>
                 <Button
                   type="submit"
