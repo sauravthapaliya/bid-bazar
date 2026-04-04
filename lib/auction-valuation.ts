@@ -182,6 +182,16 @@ export type AuctionValuationResult = {
   generatedAt: string;
 };
 
+type AuctionValuationCore = Pick<
+  AuctionValuationResult,
+  | "estimatedMarketValue"
+  | "suggestedStartPrice"
+  | "suggestedBidIncrement"
+  | "confidence"
+  | "confidenceScore"
+  | "reasonCodes"
+>;
+
 function normalizeCategory(category: string) {
   const normalized = category.trim().toLowerCase().replace(/\s+/g, "_");
   return normalized in CATEGORY_BASELINE ? normalized : "other";
@@ -210,7 +220,9 @@ function stableFingerprint(input: AuctionValuationInput) {
   return createHash("sha256").update(normalized).digest("hex").slice(0, 16);
 }
 
-function buildDeterministicBaseline(input: AuctionValuationInput) {
+function buildDeterministicBaseline(
+  input: AuctionValuationInput
+): AuctionValuationCore {
   const category = normalizeCategory(input.category);
   const text = `${input.title} ${input.description}`.trim();
   const reasons = new Set<string>();
@@ -277,16 +289,18 @@ function buildDeterministicBaseline(input: AuctionValuationInput) {
     confidenceScore += 0.06;
   }
 
+  const confidence: AuctionValuationResult["confidence"] =
+    confidenceScore >= 0.78
+      ? "high"
+      : confidenceScore >= 0.62
+        ? "medium"
+        : "low";
+
   return {
     estimatedMarketValue,
     suggestedStartPrice,
     suggestedBidIncrement,
-    confidence:
-      confidenceScore >= 0.78
-        ? "high"
-        : confidenceScore >= 0.62
-          ? "medium"
-          : "low",
+    confidence,
     confidenceScore: Number(clamp(confidenceScore, 0, 0.99).toFixed(2)),
     reasonCodes: [...reasons].slice(0, 6),
   };
