@@ -1,152 +1,14 @@
 import "server-only";
 
 import { createHash } from "crypto";
-import OpenAI from "openai";
+import {
+  GoogleGenerativeAI,
+  type ResponseSchema,
+  SchemaType,
+} from "@google/generative-ai";
 import { z } from "zod";
-import { zodTextFormat } from "openai/helpers/zod";
 
-const CATEGORY_BASELINE: Record<string, number> = {
-  smartphones: 45000,
-  laptops: 70000,
-  tablets: 30000,
-  cameras: 55000,
-  audio: 18000,
-  gaming: 35000,
-  home_appliances: 28000,
-  fashion: 12000,
-  collectibles: 22000,
-  other: 15000,
-};
-
-const CONDITION_MULTIPLIER = {
-  new: 1.18,
-  like_new: 1.04,
-  excellent: 0.94,
-  good: 0.82,
-  fair: 0.66,
-  poor: 0.48,
-} as const;
-
-const AGE_MONTHLY_DECAY: Record<string, number> = {
-  smartphones: 0.022,
-  laptops: 0.018,
-  tablets: 0.018,
-  cameras: 0.012,
-  audio: 0.015,
-  gaming: 0.013,
-  home_appliances: 0.01,
-  fashion: 0.02,
-  collectibles: 0.002,
-  other: 0.015,
-};
-
-const KEYWORD_ADJUSTMENTS: Array<{
-  pattern: RegExp;
-  amount: number;
-  reason: string;
-}> = [
-  {
-    pattern:
-      /\biphone 1[45]\b|\biphone\b.*\bpro\b|\bgalaxy s2[34]\b|\bpixel [89]\b/i,
-    amount: 40000,
-    reason: "premium flagship model",
-  },
-  {
-    pattern: /\bmacbook pro\b|\bthinkpad x1\b|\bdell xps\b|\brog zephyrus\b/i,
-    amount: 50000,
-    reason: "premium laptop series",
-  },
-  {
-    pattern:
-      /\bps5\b|\bplaystation 5\b|\bxbox series x\b|\bnintendo switch oled\b/i,
-    amount: 18000,
-    reason: "high-demand gaming hardware",
-  },
-  {
-    pattern: /\bsony a7\b|\bcanon eos r\b|\bfujifilm x-t[45]\b/i,
-    amount: 45000,
-    reason: "prosumer camera body",
-  },
-  {
-    pattern: /\bairpods\b|\bsony wh-1000xm[45]\b|\bbose qc\b/i,
-    amount: 12000,
-    reason: "premium audio product",
-  },
-  {
-    pattern: /\b128gb\b/i,
-    amount: 2500,
-    reason: "higher storage configuration",
-  },
-  {
-    pattern: /\b256gb\b/i,
-    amount: 5000,
-    reason: "higher storage configuration",
-  },
-  {
-    pattern: /\b512gb\b|\b1tb\b/i,
-    amount: 9000,
-    reason: "top storage configuration",
-  },
-  {
-    pattern: /\b16gb ram\b|\b32gb ram\b/i,
-    amount: 7000,
-    reason: "higher memory configuration",
-  },
-  {
-    pattern: /\bi3\b|\bryzen 3\b/i,
-    amount: -6000,
-    reason: "entry-level processor tier",
-  },
-  {
-    pattern: /\bi5\b|\bryzen 5\b/i,
-    amount: 2000,
-    reason: "mid-range processor tier",
-  },
-  {
-    pattern: /\bi7\b|\bi9\b|\bryzen 7\b|\bryzen 9\b/i,
-    amount: 10000,
-    reason: "higher-end processor tier",
-  },
-];
-
-const PERCENT_ADJUSTMENTS: Array<{
-  pattern: RegExp;
-  factor: number;
-  reason: string;
-}> = [
-  {
-    pattern: /\bsealed\b|\bunopened\b|\bbrand new\b/i,
-    factor: 1.08,
-    reason: "sealed condition",
-  },
-  {
-    pattern: /\bbox\b|\bcharger\b|\boriginal accessories\b|\bwith receipt\b/i,
-    factor: 1.04,
-    reason: "complete package",
-  },
-  {
-    pattern: /\bwarranty\b/i,
-    factor: 1.03,
-    reason: "warranty coverage",
-  },
-  {
-    pattern: /\bminor scratch\b|\bsmall dent\b|\bused\b/i,
-    factor: 0.96,
-    reason: "light cosmetic wear",
-  },
-  {
-    pattern: /\bcrack(ed)?\b|\bbroken\b|\bdead pixel\b|\brepair\b|\bfault(y)?\b/i,
-    factor: 0.78,
-    reason: "noted defect",
-  },
-  {
-    pattern: /\bno issue\b|\bfully working\b|\bexcellent battery\b/i,
-    factor: 1.03,
-    reason: "good functional condition",
-  },
-];
-
-const openAiValuationSchema = z.object({
+const geminiValuationSchema = z.object({
   estimatedMarketValue: z.number().positive(),
   suggestedStartPrice: z.number().positive(),
   suggestedBidIncrement: z.number().positive(),
@@ -155,7 +17,44 @@ const openAiValuationSchema = z.object({
   reasonCodes: z.array(z.string().min(3).max(80)).min(2).max(6),
 });
 
-let openaiClient: OpenAI | null = null;
+const geminiResponseSchema: ResponseSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    estimatedMarketValue: {
+      type: SchemaType.NUMBER,
+    },
+    suggestedStartPrice: {
+      type: SchemaType.NUMBER,
+    },
+    suggestedBidIncrement: {
+      type: SchemaType.NUMBER,
+    },
+    confidence: {
+      type: SchemaType.STRING,
+      format: "enum",
+      enum: ["low", "medium", "high"],
+    },
+    confidenceScore: {
+      type: SchemaType.NUMBER,
+    },
+    reasonCodes: {
+      type: SchemaType.ARRAY,
+      minItems: 2,
+      maxItems: 6,
+      items: {
+        type: SchemaType.STRING,
+      },
+    },
+  },
+  required: [
+    "estimatedMarketValue",
+    "suggestedStartPrice",
+    "suggestedBidIncrement",
+    "confidence",
+    "confidenceScore",
+    "reasonCodes",
+  ],
+};
 
 export type AuctionValuationInput = {
   title: string;
@@ -177,24 +76,13 @@ export type AuctionValuationResult = {
   reasonCodes: string[];
   deterministicFingerprint: string;
   usesAiExtraction: boolean;
-  valuationSource: "openai" | "fallback_no_api_key" | "fallback_openai_error";
+  valuationSource: "gemini";
   valuationDebug: string;
   generatedAt: string;
 };
 
-type AuctionValuationCore = Pick<
-  AuctionValuationResult,
-  | "estimatedMarketValue"
-  | "suggestedStartPrice"
-  | "suggestedBidIncrement"
-  | "confidence"
-  | "confidenceScore"
-  | "reasonCodes"
->;
-
 function normalizeCategory(category: string) {
-  const normalized = category.trim().toLowerCase().replace(/\s+/g, "_");
-  return normalized in CATEGORY_BASELINE ? normalized : "other";
+  return category.trim().toLowerCase().replace(/\s+/g, "_");
 }
 
 function roundToNearest(value: number, nearest: number) {
@@ -220,107 +108,112 @@ function stableFingerprint(input: AuctionValuationInput) {
   return createHash("sha256").update(normalized).digest("hex").slice(0, 16);
 }
 
-function buildDeterministicBaseline(
-  input: AuctionValuationInput
-): AuctionValuationCore {
-  const category = normalizeCategory(input.category);
-  const text = `${input.title} ${input.description}`.trim();
-  const reasons = new Set<string>();
-
-  let estimated = CATEGORY_BASELINE[category];
-  reasons.add(`category baseline: ${category.replaceAll("_", " ")}`);
-
-  for (const rule of KEYWORD_ADJUSTMENTS) {
-    if (!rule.pattern.test(text)) continue;
-    estimated += rule.amount;
-    reasons.add(rule.reason);
+function extractJsonObject(text: string) {
+  const trimmed = text.trim();
+  const fullFenceMatch = trimmed.match(/^```[a-zA-Z0-9_-]*\s*([\s\S]*?)\s*```$/);
+  if (fullFenceMatch?.[1]) {
+    return fullFenceMatch[1].trim();
   }
 
-  estimated *= CONDITION_MULTIPLIER[input.condition];
-  reasons.add(`condition adjustment: ${input.condition.replaceAll("_", " ")}`);
-
-  const ageDays = Math.max(0, input.conditionAgeDays ?? 0);
-  const ageMonths = ageDays / 30;
-  const ageDecay = AGE_MONTHLY_DECAY[category] ?? AGE_MONTHLY_DECAY.other;
-  const ageFactor = clamp(1 - ageMonths * ageDecay, 0.45, 1.05);
-  estimated *= ageFactor;
-  if (ageDays > 0) reasons.add("usage age adjustment");
-
-  for (const rule of PERCENT_ADJUSTMENTS) {
-    if (!rule.pattern.test(text)) continue;
-    estimated *= rule.factor;
-    reasons.add(rule.reason);
+  const firstFence = trimmed.indexOf("```");
+  if (firstFence >= 0) {
+    const withoutOpeningFence = trimmed
+      .slice(firstFence + 3)
+      .replace(/^[a-zA-Z0-9_-]+\s*/, "");
+    const closingFence = withoutOpeningFence.indexOf("```");
+    const unfenced =
+      closingFence >= 0
+        ? withoutOpeningFence.slice(0, closingFence)
+        : withoutOpeningFence;
+    const candidate = unfenced.trim();
+    if (candidate.startsWith("{") || candidate.startsWith("[")) {
+      return candidate;
+    }
   }
 
-  const descriptionLength = input.description.trim().length;
-  const informationBonus = clamp(descriptionLength / 900, 0, 0.05);
-  estimated *= 1 + informationBonus;
-  if (informationBonus > 0.02) reasons.add("detailed product description");
-
-  const estimatedMarketValue = roundToNearest(estimated, 500);
-  const durationFactor =
-    input.durationHours <= 6
-      ? 0.9
-      : input.durationHours <= 24
-        ? 0.84
-        : input.durationHours <= 72
-          ? 0.8
-          : 0.76;
-
-  const suggestedStartPrice = roundToNearest(
-    estimatedMarketValue * durationFactor,
-    100
-  );
-  const suggestedBidIncrement = roundToNearest(
-    clamp(estimatedMarketValue * 0.025, 100, 5000),
-    50
-  );
-
-  let confidenceScore = 0.48;
-  if (input.title.trim().length >= 8) confidenceScore += 0.12;
-  if (descriptionLength >= 40) confidenceScore += 0.1;
-  if (descriptionLength >= 120) confidenceScore += 0.08;
-  if (category !== "other") confidenceScore += 0.08;
-  if (
-    ageDays > 0 ||
-    input.condition === "new" ||
-    input.condition === "like_new"
-  ) {
-    confidenceScore += 0.06;
+  const start = trimmed.indexOf("{");
+  const end = trimmed.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    return trimmed.slice(start, end + 1);
   }
 
-  const confidence: AuctionValuationResult["confidence"] =
-    confidenceScore >= 0.78
-      ? "high"
-      : confidenceScore >= 0.62
-        ? "medium"
-        : "low";
-
-  return {
-    estimatedMarketValue,
-    suggestedStartPrice,
-    suggestedBidIncrement,
-    confidence,
-    confidenceScore: Number(clamp(confidenceScore, 0, 0.99).toFixed(2)),
-    reasonCodes: [...reasons].slice(0, 6),
-  };
+  return trimmed;
 }
 
-function getOpenAIClient() {
-  if (!process.env.OPENAI_API_KEY) return null;
-  if (!openaiClient) {
-    openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+function findBalancedJson(text: string) {
+  const startIndexes = ["{", "["]
+    .map((char) => text.indexOf(char))
+    .filter((index) => index >= 0)
+    .sort((a, b) => a - b);
+
+  for (const start of startIndexes) {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = start; i < text.length; i += 1) {
+      const char = text[i];
+
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+
+      if (char === '"') {
+        inString = !inString;
+        continue;
+      }
+
+      if (inString) {
+        continue;
+      }
+
+      if (char === "{" || char === "[") {
+        depth += 1;
+      } else if (char === "}" || char === "]") {
+        depth -= 1;
+        if (depth === 0) {
+          return text.slice(start, i + 1);
+        }
+      }
+    }
   }
-  return openaiClient;
+
+  return null;
+}
+
+function parseGeminiJson<T>(text: string) {
+  const candidate = extractJsonObject(text).replace(/^\uFEFF/, "").trim();
+  const attempts = [
+    candidate,
+    candidate.replace(/^Here is the JSON requested:\s*/i, "").trim(),
+    candidate.replace(/^```json\s*/i, "").replace(/```$/i, "").trim(),
+    findBalancedJson(candidate),
+    findBalancedJson(text),
+  ].filter((value): value is string => Boolean(value && value.trim()));
+
+  for (const attempt of attempts) {
+    try {
+      return JSON.parse(attempt) as T;
+    } catch {
+      continue;
+    }
+  }
+
+  const preview = candidate.slice(0, 300).replace(/\s+/g, " ");
+  throw new Error(`Gemini returned invalid JSON. Response: ${preview}`);
 }
 
 function sanitizeValuationResult(
   input: AuctionValuationInput,
-  parsed: z.infer<typeof openAiValuationSchema>,
-  usesAiExtraction: boolean
+  parsed: z.infer<typeof geminiValuationSchema>
 ): AuctionValuationResult {
-  const fingerprint = stableFingerprint(input);
-  const maxMarketValue = Math.max(input.startPrice * 5, 5000000);
+  const maxMarketValue = Math.max(input.startPrice * 10, 5000000);
   const estimatedMarketValue = roundToNearest(
     clamp(parsed.estimatedMarketValue, 100, maxMarketValue),
     100
@@ -341,86 +234,96 @@ function sanitizeValuationResult(
     confidence: parsed.confidence,
     confidenceScore: Number(clamp(parsed.confidenceScore, 0, 1).toFixed(2)),
     reasonCodes: parsed.reasonCodes.slice(0, 6),
-    deterministicFingerprint: fingerprint,
-    usesAiExtraction,
-    valuationSource: usesAiExtraction ? "openai" : "fallback_openai_error",
-    valuationDebug: usesAiExtraction
-      ? "OpenAI Responses API produced the valuation."
-      : "OpenAI result was unavailable, so deterministic fallback was used.",
+    deterministicFingerprint: stableFingerprint(input),
+    usesAiExtraction: true,
+    valuationSource: "gemini",
+    valuationDebug: "Gemini generated the valuation from the listing details.",
     generatedAt: new Date().toISOString(),
   };
 }
 
-export function calculateAuctionValuation(
-  input: AuctionValuationInput
-): AuctionValuationResult {
-  const baseline = buildDeterministicBaseline(input);
-  return {
-    ...baseline,
-    deterministicFingerprint: stableFingerprint(input),
-    usesAiExtraction: false,
-    valuationSource: "fallback_no_api_key",
-    valuationDebug:
-      "OPENAI_API_KEY is missing, so deterministic fallback was used.",
-    generatedAt: new Date().toISOString(),
-  };
+async function requestGeminiValuation(
+  prompt: string,
+  geminiModel: ReturnType<GoogleGenerativeAI["getGenerativeModel"]>
+) {
+  const response = await geminiModel.generateContent({
+    generationConfig: {
+      temperature: 0,
+      topK: 1,
+      maxOutputTokens: 768,
+      responseMimeType: "application/json",
+      responseSchema: geminiResponseSchema,
+    },
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: prompt }],
+      },
+    ],
+  });
+
+  const text = response.response.text().trim();
+  if (!text) {
+    throw new Error("Gemini returned an empty valuation response.");
+  }
+
+  return text;
 }
 
 export async function generateAuctionValuation(
   input: AuctionValuationInput
 ): Promise<AuctionValuationResult> {
-  const fallback = calculateAuctionValuation(input);
-  const client = getOpenAIClient();
-
-  if (!client) {
-    return fallback;
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is missing.");
   }
 
+  const model = process.env.GEMINI_MODEL?.trim() || "gemini-1.5-flash";
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const geminiModel = genAI.getGenerativeModel({ model });
+  const listing = {
+    ...input,
+    category: normalizeCategory(input.category),
+  };
+
+  const prompt = [
+    "Estimate the current second-hand online auction market value in Nepalese rupees (NPR).",
+    "You are pricing a user-created auction listing for Bid Bazar.",
+    "Return one JSON object that matches the provided response schema.",
+    'confidence must be "low", "medium", or "high".',
+    "confidenceScore must be a number between 0 and 1.",
+    "reasonCodes must contain 2 to 6 short seller-facing reasons.",
+    "estimatedMarketValue should be the likely market value, not MSRP.",
+    "suggestedStartPrice should usually be below estimatedMarketValue to encourage bidding.",
+    "suggestedBidIncrement should be practical for the price band.",
+    "Do not include markdown, commentary, or code fences.",
+    JSON.stringify({
+      currency: "NPR",
+      listing,
+    }),
+  ].join("\n");
+  const retryPrompt = [
+    "Return only one valid JSON object for this auction valuation.",
+    "No explanation. No markdown.",
+    JSON.stringify({
+      currency: "NPR",
+      listing,
+    }),
+  ].join("\n");
+
+  let text: string;
   try {
-    const response = await client.responses.parse({
-      model: process.env.OPENAI_AUCTION_VALUATION_MODEL ?? "gpt-4o",
-      input: [
-        {
-          role: "system",
-          content:
-            "You estimate second-hand and auction market value in Nepalese rupees (NPR). Return practical auction pricing only. Consider category, condition, usage age, market demand, completeness of accessories, and expected buyer interest. Keep the output realistic for an online auction listing.",
-        },
-        {
-          role: "user",
-          content: JSON.stringify({
-            task: "Estimate auction market value for a user-created listing.",
-            currency: "NPR",
-            listing: input,
-            deterministic_reference: buildDeterministicBaseline(input),
-            rules: [
-              "estimatedMarketValue should represent likely market value, not MSRP.",
-              "suggestedStartPrice should usually be below estimatedMarketValue to encourage bidding.",
-              "suggestedBidIncrement should be practical for the price band.",
-              "confidenceScore must be between 0 and 1.",
-              "reasonCodes must be short seller-facing reasons.",
-            ],
-          }),
-        },
-      ],
-      text: {
-        format: zodTextFormat(openAiValuationSchema, "auction_valuation"),
-      },
-    });
-
-    const parsed = response.output_parsed;
-    if (!parsed) {
-      throw new Error("OpenAI returned an unparseable valuation response.");
-    }
-
-    return sanitizeValuationResult(input, parsed, true);
+    text = await requestGeminiValuation(prompt, geminiModel);
   } catch (error) {
-    return {
-      ...fallback,
-      valuationSource: "fallback_openai_error",
-      valuationDebug:
-        error instanceof Error
-          ? `OpenAI request failed: ${error.message}`
-          : "OpenAI request failed, so deterministic fallback was used.",
-    };
+    console.warn("[auction-valuation] Retrying Gemini valuation", {
+      model,
+      reason: error instanceof Error ? error.message : "Unknown Gemini error",
+    });
+    text = await requestGeminiValuation(retryPrompt, geminiModel);
   }
+
+  const geminiJson = parseGeminiJson<z.infer<typeof geminiValuationSchema>>(text);
+  const parsed = geminiValuationSchema.parse(geminiJson);
+
+  return sanitizeValuationResult(input, parsed);
 }

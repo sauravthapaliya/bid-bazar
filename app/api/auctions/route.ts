@@ -141,6 +141,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const details =
       error instanceof Error ? error.message : "Failed to create auction";
+    console.error("[auctions.create] Failed", error);
 
     if (details.includes("E11000")) {
       return NextResponse.json(

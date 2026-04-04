@@ -83,7 +83,7 @@ type AuctionValuationPreview = {
   reasonCodes: string[];
   deterministicFingerprint: string;
   usesAiExtraction: boolean;
-  valuationSource: "openai" | "fallback_no_api_key" | "fallback_openai_error";
+  valuationSource: "gemini";
   valuationDebug: string;
 };
 
@@ -364,10 +364,15 @@ export default function DashboardPage() {
           ok?: boolean;
           valuation?: AuctionValuationPreview;
           message?: string;
+          details?: string;
         };
 
         if (!res.ok || !json.ok || !json.valuation) {
-          throw new Error(json.message ?? "Unable to estimate market value.");
+          throw new Error(
+            json.message ??
+              json.details ??
+              "Unable to estimate market value."
+          );
         }
 
         setValuation(json.valuation);
@@ -836,8 +841,8 @@ export default function DashboardPage() {
                           AI Predicted Market Value
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          OpenAI estimates the market value from the details
-                          entered in this form.
+                          Gemini estimates the market value directly from the
+                          details entered in this form.
                         </p>
                       </div>
                       {isValuationLoading && (
@@ -882,9 +887,7 @@ export default function DashboardPage() {
                             Confidence: {valuation.confidence}
                           </Badge>
                           <Badge variant="outline">
-                            {valuation.valuationSource === "openai"
-                              ? "OpenAI"
-                              : "Fallback"}
+                            Gemini Estimated
                           </Badge>
                           <span>
                             Score {Math.round(valuation.confidenceScore * 100)}%
@@ -896,9 +899,6 @@ export default function DashboardPage() {
 
                         <p className="text-xs text-muted-foreground">
                           Signals used: {valuation.reasonCodes.join(" • ")}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Debug: {valuation.valuationDebug}
                         </p>
                       </div>
                     ) : valuationError ? (

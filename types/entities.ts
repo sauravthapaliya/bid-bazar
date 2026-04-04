@@ -105,10 +105,7 @@ export interface ProductEntity extends BaseTimestamps {
     reasonCodes: string[];
     deterministicFingerprint: string;
     usesAiExtraction: boolean;
-    valuationSource:
-      | "openai"
-      | "fallback_no_api_key"
-      | "fallback_openai_error";
+    valuationSource: "gemini";
     valuationDebug: string;
     generatedAt: string;
   };

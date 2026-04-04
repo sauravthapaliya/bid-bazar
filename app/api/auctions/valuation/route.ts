@@ -19,20 +19,53 @@ export async function POST(request: Request) {
     const parsed = valuationSchema.safeParse(body);
 
     if (!parsed.success) {
+      console.error("[auction-valuation] Invalid input", parsed.error.flatten());
       return NextResponse.json(
         { ok: false, message: "Invalid valuation input." },
         { status: 400 }
       );
     }
 
+    console.log("[auction-valuation] Request received", {
+      title: parsed.data.title,
+      category: parsed.data.category,
+      condition: parsed.data.condition,
+      durationHours: parsed.data.durationHours,
+      model: process.env.GEMINI_MODEL ?? null,
+    });
+
     const valuation = await generateAuctionValuation(parsed.data);
+    console.log("[auction-valuation] Valuation generated", {
+      title: parsed.data.title,
+      estimatedMarketValue: valuation.estimatedMarketValue,
+      confidence: valuation.confidence,
+      source: valuation.valuationSource,
+    });
+
     return NextResponse.json({ ok: true, valuation }, { status: 200 });
   } catch (error) {
     const details =
       error instanceof Error ? error.message : "Unable to estimate market value";
+    console.error("[auction-valuation] Failed", error);
+
+    const status =
+      typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      typeof error.status === "number"
+        ? error.status
+        : details.includes("429") || details.toLowerCase().includes("quota")
+          ? 429
+          : 500;
+
+    const message =
+      status === 429
+        ? "Gemini quota exceeded. Please try again later."
+        : "Unable to estimate market value.";
+
     return NextResponse.json(
-      { ok: false, message: "Unable to estimate market value.", details },
-      { status: 500 }
+      { ok: false, message, details },
+      { status }
     );
   }
 }
