@@ -322,92 +322,6 @@ export default function DashboardPage() {
   }, [conditionAgeDays, requiresConditionAge]);
 
   useEffect(() => {
-    const hasEnoughData =
-      title.trim().length >= 4 &&
-      description.trim().length >= 20 &&
-      resolvedCategory.length >= 2 &&
-      durationHours > 0 &&
-      Number(startPrice) > 0 &&
-      Number(bidIncrement) > 0 &&
-      (!requiresConditionAge || parsedConditionAge !== null);
-
-    if (!hasEnoughData) {
-      setValuation(null);
-      setValuationError(null);
-      setIsValuationLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(async () => {
-      setIsValuationLoading(true);
-      setValuationError(null);
-
-      try {
-        const res = await fetch("/api/auctions/valuation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: title.trim(),
-            description: description.trim(),
-            category: resolvedCategory,
-            condition,
-            conditionAgeDays: parsedConditionAge,
-            startPrice: Number(startPrice),
-            bidIncrement: Number(bidIncrement),
-            durationHours,
-          }),
-          signal: controller.signal,
-        });
-
-        const json = (await res.json()) as {
-          ok?: boolean;
-          valuation?: AuctionValuationPreview;
-          message?: string;
-          details?: string;
-        };
-
-        if (!res.ok || !json.ok || !json.valuation) {
-          throw new Error(
-            json.message ??
-              json.details ??
-              "Unable to estimate market value."
-          );
-        }
-
-        setValuation(json.valuation);
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        setValuation(null);
-        setValuationError(
-          error instanceof Error
-            ? error.message
-            : "Unable to estimate market value."
-        );
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsValuationLoading(false);
-        }
-      }
-    }, 450);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeoutId);
-    };
-  }, [
-    bidIncrement,
-    condition,
-    description,
-    durationHours,
-    parsedConditionAge,
-    requiresConditionAge,
-    resolvedCategory,
-    startPrice,
-    title,
-  ]);
-
-  useEffect(() => {
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
@@ -462,6 +376,14 @@ export default function DashboardPage() {
   const latestMyBids = myBids.slice(0, 2);
   const watchlist = dashboard?.watchlist ?? [];
   const imageName = useMemo(() => imageFile?.name ?? null, [imageFile]);
+  const hasEnoughDataForValuation =
+    title.trim().length >= 4 &&
+    description.trim().length >= 20 &&
+    resolvedCategory.length >= 2 &&
+    durationHours > 0 &&
+    Number(startPrice) > 0 &&
+    Number(bidIncrement) > 0 &&
+    (!requiresConditionAge || parsedConditionAge !== null);
 
   function applyFile(file: File | null) {
     if (!file || !file.type.startsWith("image/")) return;
@@ -478,6 +400,54 @@ export default function DashboardPage() {
       if (prev) URL.revokeObjectURL(prev);
       return null;
     });
+  }
+
+  async function requestValuation() {
+    if (!hasEnoughDataForValuation || isValuationLoading) return;
+
+    setIsValuationLoading(true);
+    setValuationError(null);
+
+    try {
+      const res = await fetch("/api/auctions/valuation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim(),
+          category: resolvedCategory,
+          condition,
+          conditionAgeDays: parsedConditionAge,
+          startPrice: Number(startPrice),
+          bidIncrement: Number(bidIncrement),
+          durationHours,
+        }),
+      });
+
+      const json = (await res.json()) as {
+        ok?: boolean;
+        valuation?: AuctionValuationPreview;
+        message?: string;
+        details?: string;
+      };
+
+      if (!res.ok || !json.ok || !json.valuation) {
+        throw new Error(
+          json.message ?? json.details ?? "Unable to estimate market value."
+        );
+      }
+
+      setValuation(json.valuation);
+    } catch (error) {
+      setValuation(null);
+      setValuationError(
+        error instanceof Error
+          ? error.message
+          : "Unable to estimate market value."
+      );
+    } finally {
+      setIsValuationLoading(false);
+    }
   }
 
   async function submitAuction(event: React.FormEvent<HTMLFormElement>) {
@@ -517,6 +487,7 @@ export default function DashboardPage() {
           bidIncrement: Number(bidIncrement),
           durationHours,
           fileId: uploadJson.fileId,
+          marketValueEstimate: valuation ?? undefined,
         }),
       });
       const createJson = (await createRes.json()) as { auctionId?: string };
@@ -841,16 +812,25 @@ export default function DashboardPage() {
                           AI Predicted Market Value
                         </p>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Gemini estimates the market value directly from the
-                          details entered in this form.
+                          Click the button below to ask Gemini for a market
+                          valuation based on your current form details.
                         </p>
                       </div>
-                      {isValuationLoading && (
-                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          Calculating
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={requestValuation}
+                          disabled={!hasEnoughDataForValuation || isValuationLoading}
+                          className="h-9"
+                        >
+                          {isValuationLoading ? (
+                            <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                          ) : null}
+                          {valuation ? "Refresh Valuation" : "View Market Valuation"}
+                        </Button>
+                      </div>
                     </div>
 
                     {valuation ? (
@@ -907,7 +887,9 @@ export default function DashboardPage() {
                       </p>
                     ) : (
                       <p className="mt-4 text-sm text-muted-foreground">
-                        Fill in the form to generate a price estimate.
+                        {hasEnoughDataForValuation
+                          ? "Your listing details are ready. Click \"View Market Valuation\" to generate the estimate."
+                          : "Fill in the listing details first, then click the valuation button."}
                       </p>
                     )}
                   </div>
@@ -986,8 +968,7 @@ export default function DashboardPage() {
               {/* Submit bar */}
               <div className="mt-6 flex items-center justify-between gap-4 border-t border-border pt-5">
                 <p className="text-xs text-muted-foreground max-w-xs hidden sm:block">
-                  Compare your starting price with the predicted market value
-                  before publishing.
+                  You can optionally check the market valuation before publishing.
                 </p>
                 <Button
                   type="submit"

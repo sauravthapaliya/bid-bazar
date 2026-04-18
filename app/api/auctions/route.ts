@@ -5,7 +5,6 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { ensureDatabaseSchema } from "@/lib/db-schema";
 import { finalizeExpiredAuctions } from "@/lib/auction-finalization";
 import { getLiveAuctions } from "@/lib/auction-market";
-import { generateAuctionValuation } from "@/lib/auction-valuation";
 import { canSell, getCurrentUserRecord } from "@/lib/user-auth";
 import { COLLECTIONS } from "@/types/entities";
 
@@ -19,6 +18,21 @@ const createAuctionSchema = z.object({
   bidIncrement: z.number().positive(),
   durationHours: z.number().int().min(1).max(8640),
   fileId: z.string().min(8),
+  marketValueEstimate: z
+    .object({
+      estimatedMarketValue: z.number().positive(),
+      suggestedStartPrice: z.number().positive(),
+      suggestedBidIncrement: z.number().positive(),
+      confidence: z.enum(["low", "medium", "high"]),
+      confidenceScore: z.number().min(0).max(1),
+      reasonCodes: z.array(z.string()).max(10),
+      deterministicFingerprint: z.string().min(1),
+      usesAiExtraction: z.boolean(),
+      valuationSource: z.literal("gemini"),
+      valuationDebug: z.string().min(1),
+      generatedAt: z.string().min(1),
+    })
+    .optional(),
 });
 
 function makeSlug(input: string) {
@@ -77,22 +91,12 @@ export async function POST(request: Request) {
       bidIncrement,
       durationHours,
       fileId,
+      marketValueEstimate,
     } = parsed.data;
 
     const now = new Date();
     const endsAt = new Date(now.getTime() + durationHours * 60 * 60 * 1000);
     const sellerId = viewer.id;
-    const valuation = await generateAuctionValuation({
-      title,
-      description,
-      category,
-      condition,
-      conditionAgeDays: typeof conditionAgeDays === "number" ? conditionAgeDays : null,
-      startPrice,
-      bidIncrement,
-      durationHours,
-    });
-
     const { db } = await connectToDatabase();
     const productResult = await db.collection(COLLECTIONS.products).insertOne({
       sellerId,
@@ -105,7 +109,7 @@ export async function POST(request: Request) {
       images: [{ fileId, alt: title, isPrimary: true }],
       status: "listed",
       tags: [],
-      marketValueEstimate: valuation,
+      marketValueEstimate: marketValueEstimate ?? undefined,
       createdAt: now,
       updatedAt: now,
     });

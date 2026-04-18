@@ -62,6 +62,19 @@ type AuctionDetail = {
   winnerLabel: string | null;
   isViewerWinner: boolean;
   contactRequestSentAt?: string | null;
+  marketValueEstimate: {
+    estimatedMarketValue: number;
+    suggestedStartPrice: number;
+    suggestedBidIncrement: number;
+    confidence: "low" | "medium" | "high";
+    confidenceScore: number;
+    reasonCodes: string[];
+    deterministicFingerprint: string;
+    usesAiExtraction: boolean;
+    valuationSource: "gemini";
+    valuationDebug: string;
+    generatedAt: string;
+  } | null;
 };
 
 type Params = { params: Promise<{ id: string }> };
@@ -567,45 +580,79 @@ export default function AuctionDetailPage({ params }: Params) {
               </div>
 
               {/* Title + meta */}
-              <div className="p-6 space-y-4">
-                <div className="space-y-2">
-                  <h1 className="text-2xl font-bold tracking-tight text-foreground leading-tight">
-                    {auction.title}
-                  </h1>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {auction.description || "No description provided."}
-                  </p>
-                </div>
+              <div className="p-6">
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
+                  <div className="min-w-0 space-y-5">
+                    <div className="space-y-3">
+                      <h1 className="text-2xl font-bold tracking-tight text-foreground leading-tight">
+                        {auction.title}
+                      </h1>
+                      <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
+                        {auction.description || "No description provided."}
+                      </p>
+                    </div>
 
-                <div className="space-y-2 text-sm">
-                  <p className="text-muted-foreground">
-                    Category:{" "}
-                    <span className="font-semibold text-foreground capitalize">
-                      {auction.category.replaceAll("_", " ")}
-                    </span>
-                  </p>
-                  <p className="text-muted-foreground">
-                    Condition:{" "}
-                    <span className="font-semibold text-foreground">
-                      {conditionLabel(auction.condition, auction.conditionAgeDays)}
-                    </span>
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-muted-foreground">
-                      Seller:{" "}
-                      <span className="font-semibold text-foreground">
-                        {auction.sellerName}
-                      </span>
-                    </p>
-                    {auction.isSellerVerified && (
-                      <Badge
-                        variant="outline"
-                        className="border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400 text-[10px]"
-                      >
-                        Verified Seller
-                      </Badge>
-                    )}
+                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Category:</span>
+                        <span className="font-semibold capitalize text-foreground">
+                          {auction.category.replaceAll("_", " ")}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Condition:</span>
+                        <span className="font-semibold text-foreground">
+                          {conditionLabel(auction.condition, auction.conditionAgeDays)}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-muted-foreground">Seller:</span>
+                        <span className="font-semibold text-foreground">
+                          {auction.sellerName}
+                        </span>
+                        {auction.isSellerVerified && (
+                          <Badge
+                            variant="outline"
+                            className="border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400 text-[10px]"
+                          >
+                            Verified Seller
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
+
+                  {auction.marketValueEstimate ? (
+                    <div className="overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/6 to-background shadow-sm">
+                      <div className="border-b border-primary/10 px-5 py-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/90">
+                          Estimated Market Value
+                        </p>
+                      </div>
+                      <div className="px-5 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                            <TrendingUp className="h-5 w-5" />
+                          </div>
+                          <p className="text-3xl font-bold tracking-tight text-foreground">
+                            {money.format(auction.marketValueEstimate.estimatedMarketValue)}
+                          </p>
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                          Confidence{" "}
+                          <span className="font-semibold capitalize text-foreground">
+                            {auction.marketValueEstimate.confidence}
+                          </span>{" "}
+                          · Score{" "}
+                          <span className="font-semibold text-foreground">
+                            {Math.round(auction.marketValueEstimate.confidenceScore * 100)}%
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>

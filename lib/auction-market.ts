@@ -41,6 +41,19 @@ export type AuctionDetail = AuctionListItem & {
   winnerId: string | null;
   winnerLabel: string | null;
   isViewerWinner: boolean;
+  marketValueEstimate: {
+    estimatedMarketValue: number;
+    suggestedStartPrice: number;
+    suggestedBidIncrement: number;
+    confidence: "low" | "medium" | "high";
+    confidenceScore: number;
+    reasonCodes: string[];
+    deterministicFingerprint: string;
+    usesAiExtraction: boolean;
+    valuationSource: "gemini";
+    valuationDebug: string;
+    generatedAt: string;
+  } | null;
 };
 
 function asIdString(value: unknown): string {
@@ -282,5 +295,31 @@ export async function getAuctionDetail(
     winnerId,
     winnerLabel,
     isViewerWinner,
+    marketValueEstimate:
+      product?.marketValueEstimate && typeof product.marketValueEstimate === "object"
+        ? {
+            estimatedMarketValue: toNumber(product.marketValueEstimate.estimatedMarketValue),
+            suggestedStartPrice: toNumber(product.marketValueEstimate.suggestedStartPrice),
+            suggestedBidIncrement: toNumber(product.marketValueEstimate.suggestedBidIncrement, 1),
+            confidence:
+              product.marketValueEstimate.confidence === "low" ||
+              product.marketValueEstimate.confidence === "medium" ||
+              product.marketValueEstimate.confidence === "high"
+                ? product.marketValueEstimate.confidence
+                : "medium",
+            confidenceScore: toNumber(product.marketValueEstimate.confidenceScore),
+            reasonCodes: Array.isArray(product.marketValueEstimate.reasonCodes)
+              ? product.marketValueEstimate.reasonCodes.map((item) => String(item))
+              : [],
+            deterministicFingerprint: String(
+              product.marketValueEstimate.deterministicFingerprint ?? ""
+            ),
+            usesAiExtraction: product.marketValueEstimate.usesAiExtraction === true,
+            valuationSource:
+              product.marketValueEstimate.valuationSource === "gemini" ? "gemini" : "gemini",
+            valuationDebug: String(product.marketValueEstimate.valuationDebug ?? ""),
+            generatedAt: String(product.marketValueEstimate.generatedAt ?? ""),
+          }
+        : null,
   };
 }
