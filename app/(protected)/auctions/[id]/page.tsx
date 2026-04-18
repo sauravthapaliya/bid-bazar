@@ -309,6 +309,11 @@ export default function AuctionDetailPage({ params }: Params) {
   );
   const viewerId = session?.user?.id ? String(session.user.id) : null;
   const isWatched = Boolean(watchlistStatusQuery.data?.watched);
+  const isViewerLastBidder = Boolean(
+    viewerId &&
+      auction?.bids?.[0] &&
+      String(auction.bids[0].bidderId) === viewerId
+  );
 
   const winnerBid = useMemo(() => {
     if (!auction?.winnerId) return null;
@@ -824,6 +829,7 @@ export default function AuctionDetailPage({ params }: Params) {
                         onChange={(e) => setBidAmount(e.target.value)}
                         placeholder={String(minimumAllowed)}
                         required
+                        disabled={isViewerLastBidder}
                         className="h-12 rounded-xl text-lg font-bold bg-background border-border focus-visible:ring-primary/50"
                       />
                       <p className="text-xs text-muted-foreground">
@@ -844,9 +850,17 @@ export default function AuctionDetailPage({ params }: Params) {
                         </AlertDescription>
                       </Alert>
                     )}
+                    {isViewerLastBidder && !bidError ? (
+                      <Alert className="rounded-xl border-yellow-500/30 bg-yellow-500/8 py-3">
+                        <AlertCircle className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" />
+                        <AlertDescription className="text-xs text-yellow-700 dark:text-yellow-400">
+                          You already placed the latest bid. Another bidder must bid before you can bid again.
+                        </AlertDescription>
+                      </Alert>
+                    ) : null}
                     <Button
                       type="submit"
-                      disabled={isBidding}
+                      disabled={isBidding || isViewerLastBidder}
                       className="w-full h-11 rounded-xl font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-all hover:-translate-y-px active:translate-y-0 gap-2"
                     >
                       {isBidding ? (

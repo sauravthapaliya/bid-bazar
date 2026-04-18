@@ -84,6 +84,27 @@ export async function POST(request: Request, { params }: Params) {
     const minimumAllowed = currentPrice + bidIncrement;
     const amount = Math.round(parsed.data.amount);
 
+    const lastBid = await bids.findOne(
+      {
+        auctionId: { $in: auctionIdCandidates },
+      } as never,
+      {
+        sort: { createdAt: -1, _id: -1 },
+        projection: { bidderId: 1 },
+      }
+    );
+
+    if (lastBid && String(lastBid.bidderId) === bidderId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          message:
+            "You cannot place two consecutive bids on the same auction. Wait for another bidder before bidding again.",
+        },
+        { status: 400 }
+      );
+    }
+
     if (amount < minimumAllowed) {
       return NextResponse.json(
         {
