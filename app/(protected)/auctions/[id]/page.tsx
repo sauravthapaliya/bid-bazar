@@ -467,7 +467,7 @@ export default function AuctionDetailPage({ params }: Params) {
   if (auctionQuery.isLoading) {
     return (
       <main className="min-h-screen bg-background">
-        <div className="mx-auto w-full max-w-[90rem] px-4 py-8 md:px-6 lg:px-8 space-y-6">
+        <div className="mx-auto w-full max-w-360 px-4 py-8 md:px-6 lg:px-8 space-y-6">
           <div className="h-8 w-40 animate-pulse rounded-lg bg-muted" />
           <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
             <div className="space-y-4">
@@ -488,7 +488,7 @@ export default function AuctionDetailPage({ params }: Params) {
   if (auctionQuery.error || !auction) {
     return (
       <main className="min-h-screen bg-background">
-        <div className="mx-auto w-full max-w-[90rem] px-4 py-8 md:px-6 lg:px-8 space-y-4">
+        <div className="mx-auto w-full max-w-360 px-4 py-8 md:px-6 lg:px-8 space-y-4">
           <Button
             asChild
             variant="ghost"
@@ -517,7 +517,7 @@ export default function AuctionDetailPage({ params }: Params) {
 
   return (
     <main className="min-h-screen bg-background">
-      <div className="mx-auto w-full max-w-[90rem] px-4 py-6 md:px-6 lg:px-8 lg:py-8 space-y-6">
+      <div className="mx-auto w-full max-w-360 px-4 py-6 md:px-6 lg:px-8 lg:py-8 space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Link
@@ -625,7 +625,7 @@ export default function AuctionDetailPage({ params }: Params) {
                   </div>
 
                   {auction.marketValueEstimate ? (
-                    <div className="overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-primary/6 to-background shadow-sm">
+                    <div className="overflow-hidden rounded-2xl border border-primary/20 bg-linear-to-br from-primary/10 via-primary/6 to-background shadow-sm">
                       <div className="border-b border-primary/10 px-5 py-4">
                         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/90">
                           Estimated Market Value

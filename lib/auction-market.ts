@@ -266,6 +266,10 @@ export async function getAuctionDetail(
 
   const bidderIds = bids.map((bid) => asIdString(bid.bidderId));
   const bidderNames = isOwnerView ? await getUsersMapByIds(bidderIds) : new Map<string, string>();
+  const rawMarketValueEstimate =
+    product?.marketValueEstimate && typeof product.marketValueEstimate === "object"
+      ? (product.marketValueEstimate as Record<string, unknown>)
+      : null;
 
   const bidRows: AuctionBidItem[] = bids.map((bid) => {
     const bidderId = asIdString(bid.bidderId);
@@ -295,31 +299,28 @@ export async function getAuctionDetail(
     winnerId,
     winnerLabel,
     isViewerWinner,
-    marketValueEstimate:
-      product?.marketValueEstimate && typeof product.marketValueEstimate === "object"
-        ? {
-            estimatedMarketValue: toNumber(product.marketValueEstimate.estimatedMarketValue),
-            suggestedStartPrice: toNumber(product.marketValueEstimate.suggestedStartPrice),
-            suggestedBidIncrement: toNumber(product.marketValueEstimate.suggestedBidIncrement, 1),
-            confidence:
-              product.marketValueEstimate.confidence === "low" ||
-              product.marketValueEstimate.confidence === "medium" ||
-              product.marketValueEstimate.confidence === "high"
-                ? product.marketValueEstimate.confidence
-                : "medium",
-            confidenceScore: toNumber(product.marketValueEstimate.confidenceScore),
-            reasonCodes: Array.isArray(product.marketValueEstimate.reasonCodes)
-              ? product.marketValueEstimate.reasonCodes.map((item) => String(item))
-              : [],
-            deterministicFingerprint: String(
-              product.marketValueEstimate.deterministicFingerprint ?? ""
-            ),
-            usesAiExtraction: product.marketValueEstimate.usesAiExtraction === true,
-            valuationSource:
-              product.marketValueEstimate.valuationSource === "gemini" ? "gemini" : "gemini",
-            valuationDebug: String(product.marketValueEstimate.valuationDebug ?? ""),
-            generatedAt: String(product.marketValueEstimate.generatedAt ?? ""),
-          }
-        : null,
+    marketValueEstimate: rawMarketValueEstimate
+      ? {
+          estimatedMarketValue: toNumber(rawMarketValueEstimate.estimatedMarketValue),
+          suggestedStartPrice: toNumber(rawMarketValueEstimate.suggestedStartPrice),
+          suggestedBidIncrement: toNumber(rawMarketValueEstimate.suggestedBidIncrement, 1),
+          confidence:
+            rawMarketValueEstimate.confidence === "low" ||
+            rawMarketValueEstimate.confidence === "medium" ||
+            rawMarketValueEstimate.confidence === "high"
+              ? rawMarketValueEstimate.confidence
+              : "medium",
+          confidenceScore: toNumber(rawMarketValueEstimate.confidenceScore),
+          reasonCodes: Array.isArray(rawMarketValueEstimate.reasonCodes)
+            ? rawMarketValueEstimate.reasonCodes.map((item) => String(item))
+            : [],
+          deterministicFingerprint: String(rawMarketValueEstimate.deterministicFingerprint ?? ""),
+          usesAiExtraction: rawMarketValueEstimate.usesAiExtraction === true,
+          valuationSource:
+            rawMarketValueEstimate.valuationSource === "gemini" ? "gemini" : "gemini",
+          valuationDebug: String(rawMarketValueEstimate.valuationDebug ?? ""),
+          generatedAt: String(rawMarketValueEstimate.generatedAt ?? ""),
+        }
+      : null,
   };
 }
