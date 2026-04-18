@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 import { HomeNavbar } from "@/components/home/navbar";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,9 +99,7 @@ const LoginPage = () => {
           <div className="pointer-events-none absolute bottom-0 right-0 w-72 h-72 rounded-full bg-primary/5 blur-3xl" />
 
           <div className="relative z-10">
-            <p className="text-2xl font-extrabold tracking-tighter text-foreground">
-              BID<span className="text-primary">BZAR</span>
-            </p>
+            <BrandLogo />
           </div>
 
           <div className="relative z-10 space-y-5">

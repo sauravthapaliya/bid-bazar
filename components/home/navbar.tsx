@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Gavel, Menu, X, Zap, BookOpen, Rocket } from "lucide-react";
 import { useState } from "react";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 
@@ -32,14 +33,10 @@ export function HomeNavbar({ isAuthenticated }: HomeNavbarProps) {
           <div className="relative flex items-center justify-center rounded-xl bg-primary p-2.5 shadow-lg transition-all group-hover:shadow-xl">
             <Gavel className="size-5 text-primary-foreground" />
           </div>
-          <div>
-            <p className="text-lg font-bold leading-none tracking-tight">
-              BIDBZAR
-            </p>
-            <p className="mt-1 text-xs font-medium leading-none text-muted-foreground">
-              Auction Platform
-            </p>
-          </div>
+          <BrandLogo
+            subtitle="Auction Platform"
+            textClassName="text-lg"
+          />
         </Link>
 
         {/* Desktop Navigation */}

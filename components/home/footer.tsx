@@ -9,6 +9,7 @@ import {
   Instagram,
   Linkedin,
 } from "lucide-react";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 export function HomeFooter() {
   const platformLinks = [
@@ -52,18 +53,14 @@ export function HomeFooter() {
               <div className="flex items-center justify-center rounded-xl bg-primary p-2.5 shadow-lg">
                 <Gavel className="size-5 text-primary-foreground" />
               </div>
-              <div>
-                <p className="text-lg font-bold leading-none tracking-tight">
-                  BIDBZAR
-                </p>
-                <p className="mt-1 text-xs font-medium leading-none text-muted-foreground">
-                  Auction Platform
-                </p>
-              </div>
+              <BrandLogo
+                subtitle="Auction Platform"
+                textClassName="text-lg"
+              />
             </Link>
 
             <p className="mt-6 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              Nepal's most trusted online auction platform for transparent,
+              Nepal&apos;s most trusted online auction platform for transparent,
               competitive bidding. Discover deals, place bids in real-time, and
               win with confidence.
             </p>

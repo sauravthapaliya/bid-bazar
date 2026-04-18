@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -271,12 +272,10 @@ export default function ProtectedNavbar({
             <Gavel className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="hidden sm:block">
-            <p className="text-lg font-bold leading-none tracking-tight text-foreground">
-              BIDBZAR
-            </p>
-            <p className="mt-1 text-xs font-medium leading-none text-muted-foreground">
-              Auction Platform
-            </p>
+            <BrandLogo
+              subtitle="Auction Platform"
+              textClassName="text-lg"
+            />
           </div>
         </Link>
 
