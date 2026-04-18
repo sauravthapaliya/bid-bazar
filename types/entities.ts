@@ -10,6 +10,7 @@ export const COLLECTIONS = {
   watchlist: "watchlist",
   notifications: "notifications",
   transactions: "transactions",
+  auctionContactRequests: "auctionContactRequests",
 } as const;
 
 export type EntityId = string;
@@ -172,4 +173,21 @@ export interface TransactionEntity extends BaseTimestamps {
   esewaRefId?: string | null;
   khaltiPidx?: string | null;
   gatewayPayloadHash?: string | null;
+}
+
+export interface AuctionContactRequestEntity extends BaseTimestamps {
+  _id: EntityId;
+  auctionId: EntityId;
+  sellerId: EntityId;
+  winnerId: EntityId;
+  submittedById: EntityId;
+  recipientId: EntityId;
+  auctionTitle: string;
+  senderName: string;
+  senderEmail: string;
+  senderPhone: string;
+  meetingLocation: string;
+  preferredContactTime?: string | null;
+  note?: string | null;
+  sentAt: Date;
 }

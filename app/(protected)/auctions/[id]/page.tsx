@@ -20,6 +20,7 @@ import {
   PackageSearch,
   ChevronRight,
 } from "lucide-react";
+import { AuctionContactRequestForm } from "@/components/auctions/auction-contact-request-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -60,6 +61,7 @@ type AuctionDetail = {
   winnerId: string | null;
   winnerLabel: string | null;
   isViewerWinner: boolean;
+  contactRequestSentAt?: string | null;
 };
 
 type Params = { params: Promise<{ id: string }> };
@@ -954,6 +956,20 @@ export default function AuctionDetailPage({ params }: Params) {
                   )}
                 </div>
               </SideCard>
+            )}
+
+            {isFinalized && session?.user && (auction.isOwnerView || auction.isViewerWinner) && (
+              <AuctionContactRequestForm
+                auctionId={auction.id}
+                auctionTitle={auction.title}
+                counterpartyLabel={
+                  auction.isOwnerView
+                    ? auction.winnerLabel ?? "winning bidder"
+                    : auction.sellerName
+                }
+                existingSentAt={auction.contactRequestSentAt ?? null}
+                buttonLabel={auction.isOwnerView ? "Contact Bidder" : "Contact Seller"}
+              />
             )}
           </aside>
         </div>

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Edit3, Eye, Loader2, Save, Trash2, Upload, X } from "lucide-react";
+import { AuctionContactRequestForm } from "@/components/auctions/auction-contact-request-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,9 +57,12 @@ type MyAuctionItem = {
   currentPrice: number;
   bidIncrement: number;
   totalBids: number;
+  winnerId: string | null;
+  winnerName: string | null;
   createdAt: string | null;
   endsAt: string | null;
   imageUrl: string | null;
+  contactRequestSentAt: string | null;
 };
 
 type EditFormState = {
@@ -528,6 +532,16 @@ export default function MyAuctionsPage() {
                       Current {money.format(item.currentPrice)}
                     </Badge>
                   </div>
+
+                  {item.status === "ended" && item.winnerId ? (
+                    <AuctionContactRequestForm
+                      auctionId={item.auctionId}
+                      auctionTitle={item.title}
+                      counterpartyLabel={item.winnerName ?? "the winning bidder"}
+                      existingSentAt={item.contactRequestSentAt}
+                      buttonLabel="Contact Bidder"
+                    />
+                  ) : null}
 
                   {editingId === item.auctionId && form ? (
                     <div className="overflow-hidden rounded-xl border">

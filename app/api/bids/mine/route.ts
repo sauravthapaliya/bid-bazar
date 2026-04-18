@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
+import { getAuctionContactStatuses } from "@/lib/auction-contact";
 import { connectToDatabase } from "@/lib/mongodb";
 import { finalizeExpiredAuctions } from "@/lib/auction-finalization";
 import { COLLECTIONS } from "@/types/entities";
@@ -33,6 +34,30 @@ function toNumber(value: unknown, fallback = 0) {
     if (Number.isFinite(parsed)) return parsed;
   }
   return fallback;
+}
+
+async function getUsersMapByIds(db: Awaited<ReturnType<typeof connectToDatabase>>["db"], ids: string[]) {
+  const uniqueIds = [...new Set(ids)];
+  if (uniqueIds.length === 0) return new Map<string, string>();
+
+  const objectIds = uniqueIds
+    .filter((id) => ObjectId.isValid(id))
+    .map((id) => new ObjectId(id));
+
+  const clauses: Record<string, unknown>[] = [];
+  if (uniqueIds.length > 0) clauses.push({ _id: { $in: uniqueIds } });
+  if (objectIds.length > 0) clauses.push({ _id: { $in: objectIds } });
+
+  const users = await db
+    .collection<Record<string, unknown>>(COLLECTIONS.users)
+    .find(clauses.length === 1 ? clauses[0] : { $or: clauses }, { projection: { name: 1 } })
+    .toArray();
+
+  const map = new Map<string, string>();
+  for (const user of users) {
+    map.set(asIdString(user._id), String(user.name ?? "User"));
+  }
+  return map;
 }
 
 function getPrimaryImageFileId(images: unknown): string | null {
@@ -148,6 +173,15 @@ export async function GET() {
       } as never)
       .toArray();
 
+    const sellerNamesById = await getUsersMapByIds(
+      db,
+      auctionRows.map((auction) => asIdString(auction.sellerId))
+    );
+    const contactRequestsByAuctionId = await getAuctionContactStatuses(db, {
+      auctionIds: auctionById.size > 0 ? [...auctionById.keys()] : [],
+      submittedById: session.user.id,
+    });
+
     const txByAuctionId = new Map<string, (typeof txRows)[number]>();
     for (const tx of txRows) {
       txByAuctionId.set(asIdString(tx.auctionId), tx);
@@ -193,6 +227,7 @@ export async function GET() {
         return {
           auctionId: auctionKey,
           title: String(auction.title ?? product?.title ?? "Untitled Auction"),
+          sellerName: sellerNamesById.get(asIdString(auction.sellerId)) ?? "Seller",
           category: String(product?.category ?? "General"),
           status,
           bidState,
@@ -206,6 +241,7 @@ export async function GET() {
           paymentStatus,
           paymentProvider,
           paidAt: toDate(tx?.paidAt),
+          contactRequestSentAt: contactRequestsByAuctionId.get(auctionKey)?.sentAt ?? null,
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);

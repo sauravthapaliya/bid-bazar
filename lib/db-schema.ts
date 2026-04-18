@@ -62,6 +62,16 @@ async function createIndexes() {
       .collection(COLLECTIONS.transactions)
       .createIndex({ khaltiPidx: 1 }, { unique: true, sparse: true }),
     db.collection(COLLECTIONS.transactions).createIndex({ provider: 1, status: 1, createdAt: -1 }),
+
+    db
+      .collection(COLLECTIONS.auctionContactRequests)
+      .createIndex({ auctionId: 1, submittedById: 1 }, { unique: true }),
+    db
+      .collection(COLLECTIONS.auctionContactRequests)
+      .createIndex({ recipientId: 1, createdAt: -1 }),
+    db
+      .collection(COLLECTIONS.auctionContactRequests)
+      .createIndex({ auctionId: 1, createdAt: -1 }),
   ]);
 }
 

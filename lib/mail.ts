@@ -7,6 +7,7 @@ type SendMailInput = {
   subject: string;
   text: string;
   html: string;
+  replyTo?: string;
 };
 
 let transporter: nodemailer.Transporter | null = null;
@@ -46,5 +47,6 @@ export async function sendMail(input: SendMailInput) {
     subject: input.subject,
     text: input.text,
     html: input.html,
+    replyTo: input.replyTo,
   });
 }

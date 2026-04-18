@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Clock3, Gavel, HandCoins, Loader2, Trophy } from "lucide-react";
+import { AuctionContactRequestForm } from "@/components/auctions/auction-contact-request-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import { queryKeys } from "@/lib/query-keys";
 type MyBidItem = {
   auctionId: string;
   title: string;
+  sellerName: string;
   category: string;
   status: string;
   bidState: "winning" | "outbid" | "won" | "lost" | "cancelled";
@@ -28,6 +30,7 @@ type MyBidItem = {
   paymentStatus: "pending" | "paid" | "failed" | "authorized" | "refunded" | "unknown";
   paymentProvider: "esewa" | "khalti" | null;
   paidAt: string | null;
+  contactRequestSentAt: string | null;
 };
 
 async function fetchMyBids(): Promise<MyBidItem[]> {
@@ -239,40 +242,50 @@ export default function MyBidsPage() {
                       </div>
 
                       {item.bidState === "won" ? (
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <Badge
-                            variant={
-                              item.paymentStatus === "paid"
-                                ? "bidWon"
-                                : item.paymentStatus === "pending" || item.paymentStatus === "authorized"
-                                  ? "bidWinning"
-                                  : "neutral"
-                            }
-                          >
-                            payment: {item.paymentStatus}
-                          </Badge>
-                          {item.paymentProvider ? (
-                            <Badge variant="outline">via {item.paymentProvider}</Badge>
-                          ) : null}
-                          {item.paymentStatus === "paid" ? (
-                            <Badge variant="outline">
-                              paid {item.paidAt ? dateTime.format(new Date(item.paidAt)) : ""}
+                        <div className="mt-3 space-y-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge
+                              variant={
+                                item.paymentStatus === "paid"
+                                  ? "bidWon"
+                                  : item.paymentStatus === "pending" ||
+                                      item.paymentStatus === "authorized"
+                                    ? "bidWinning"
+                                    : "neutral"
+                              }
+                            >
+                              payment: {item.paymentStatus}
                             </Badge>
-                          ) : (
-                            <>
-                              <PaymentMethodButton
-                                method="esewa"
-                                size="sm"
-                                onClick={() => proceedToPayment(item, "esewa")}
-                              />
-                              <PaymentMethodButton
-                                method="khalti"
-                                size="sm"
-                                emphasis="soft"
-                                onClick={() => proceedToPayment(item, "khalti")}
-                              />
-                            </>
-                          )}
+                            {item.paymentProvider ? (
+                              <Badge variant="outline">via {item.paymentProvider}</Badge>
+                            ) : null}
+                            {item.paymentStatus === "paid" ? (
+                              <Badge variant="outline">
+                                paid {item.paidAt ? dateTime.format(new Date(item.paidAt)) : ""}
+                              </Badge>
+                            ) : (
+                              <>
+                                <PaymentMethodButton
+                                  method="esewa"
+                                  size="sm"
+                                  onClick={() => proceedToPayment(item, "esewa")}
+                                />
+                                <PaymentMethodButton
+                                  method="khalti"
+                                  size="sm"
+                                  emphasis="soft"
+                                  onClick={() => proceedToPayment(item, "khalti")}
+                                />
+                              </>
+                            )}
+                          </div>
+                          <AuctionContactRequestForm
+                            auctionId={item.auctionId}
+                            auctionTitle={item.title}
+                            counterpartyLabel={item.sellerName}
+                            existingSentAt={item.contactRequestSentAt}
+                            buttonLabel="Contact Seller"
+                          />
                         </div>
                       ) : null}
 

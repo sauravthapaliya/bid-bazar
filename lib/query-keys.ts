@@ -3,6 +3,7 @@ export const queryKeys = {
   myAuctions: () => ["my-auctions"] as const,
   myBids: () => ["my-bids"] as const,
   myPayments: () => ["my-payments"] as const,
+  auctionContactRequest: (auctionId: string) => ["auction-contact-request", auctionId] as const,
   auctionPaymentStatus: (auctionId: string) => ["auction-payment-status", auctionId] as const,
   liveAuctions: () => ["live-auctions"] as const,
   auctionDetail: (id: string) => ["auction-detail", id] as const,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { auth } from "@/auth";
+import { asIdString, getAuctionContactStatuses } from "@/lib/auction-contact";
 import { connectToDatabase } from "@/lib/mongodb";
 import { finalizeExpiredAuctions } from "@/lib/auction-finalization";
 import { COLLECTIONS } from "@/types/entities";
@@ -10,11 +11,6 @@ type IdLike = string | ObjectId;
 function idVariants(id: string): IdLike[] {
   if (!ObjectId.isValid(id)) return [id];
   return [id, new ObjectId(id)];
-}
-
-function asIdString(value: unknown): string {
-  if (value instanceof ObjectId) return value.toHexString();
-  return String(value);
 }
 
 function toDate(value: unknown): string | null {
@@ -51,6 +47,30 @@ function getPrimaryImageFileId(images: unknown): string | null {
   return asIdString((preferred as { fileId: unknown }).fileId);
 }
 
+async function getUsersMapByIds(db: Awaited<ReturnType<typeof connectToDatabase>>["db"], ids: string[]) {
+  const uniqueIds = [...new Set(ids)].filter(Boolean);
+  if (uniqueIds.length === 0) return new Map<string, string>();
+
+  const objectIds = uniqueIds
+    .filter((id) => ObjectId.isValid(id))
+    .map((id) => new ObjectId(id));
+
+  const clauses: Record<string, unknown>[] = [];
+  if (uniqueIds.length > 0) clauses.push({ _id: { $in: uniqueIds } });
+  if (objectIds.length > 0) clauses.push({ _id: { $in: objectIds } });
+
+  const users = await db
+    .collection<Record<string, unknown>>(COLLECTIONS.users)
+    .find(clauses.length === 1 ? clauses[0] : { $or: clauses }, { projection: { name: 1 } })
+    .toArray();
+
+  const map = new Map<string, string>();
+  for (const user of users) {
+    map.set(asIdString(user._id), String(user.name ?? "User"));
+  }
+  return map;
+}
+
 export async function GET() {
   try {
     const session = await auth();
@@ -83,6 +103,15 @@ export async function GET() {
               },
             } as never)
             .toArray();
+
+    const winnerIds = auctions
+      .map((row) => (row.winnerId ? asIdString(row.winnerId) : null))
+      .filter((id): id is string => Boolean(id));
+    const winnerNamesById = await getUsersMapByIds(db, winnerIds);
+    const contactRequestsByAuctionId = await getAuctionContactStatuses(db, {
+      auctionIds: auctions.map((auction) => asIdString(auction._id)),
+      submittedById: session.user.id,
+    });
 
     const productById = new Map<string, Record<string, unknown>>();
     for (const product of products) {
@@ -117,9 +146,15 @@ export async function GET() {
         currentPrice: toNumber(auction.currentPrice),
         bidIncrement: toNumber(auction.bidIncrement, 1),
         totalBids: toNumber(auction.totalBids),
+        winnerId: auction.winnerId ? asIdString(auction.winnerId) : null,
+        winnerName: auction.winnerId
+          ? winnerNamesById.get(asIdString(auction.winnerId)) ?? "Winning bidder"
+          : null,
         createdAt: toDate(auction.createdAt),
         endsAt: endsAtIso,
         imageUrl: imageId ? `/api/uploads/${imageId}` : null,
+        contactRequestSentAt:
+          contactRequestsByAuctionId.get(asIdString(auction._id))?.sentAt ?? null,
       };
     });
 
