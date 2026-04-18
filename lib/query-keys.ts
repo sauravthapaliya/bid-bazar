@@ -9,4 +9,7 @@ export const queryKeys = {
   auctionDetail: (id: string) => ["auction-detail", id] as const,
   watchlist: () => ["watchlist"] as const,
   watchlistStatus: (id: string) => ["watchlist-status", id] as const,
+  sellerReviews: (sellerId: string) => ["seller-reviews", sellerId] as const,
+  sellerProfile: (sellerId: string) => ["seller-profile", sellerId] as const,
+  auctionReview: (auctionId: string) => ["auction-review", auctionId] as const,
 };

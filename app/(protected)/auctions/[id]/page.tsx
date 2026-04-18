@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import toast from "react-hot-toast";
 import {
   Clock3,
   HandCoins,
@@ -12,6 +13,7 @@ import {
   Loader2,
   Trophy,
   ArrowLeft,
+  CreditCard,
   TrendingUp,
   Gavel,
   ShieldCheck,
@@ -21,13 +23,20 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { AuctionContactRequestForm } from "@/components/auctions/auction-contact-request-form";
+import { ReviewForm } from "@/components/reviews/review-form";
+import { StarRating } from "@/components/reviews/star-rating";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { PaymentMethodButton } from "@/components/payments/payment-method-button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { queryKeys } from "@/lib/query-keys";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -53,6 +62,7 @@ type AuctionDetail = {
   bidIncrement: number;
   totalBids: number;
   endsAt: string | Date | null;
+  sellerId: string;
   sellerName: string;
   isSellerVerified: boolean;
   imageUrl: string | null;
@@ -62,6 +72,8 @@ type AuctionDetail = {
   winnerLabel: string | null;
   isViewerWinner: boolean;
   contactRequestSentAt?: string | null;
+  sellerRating: number | null;
+  sellerReviewCount: number;
   marketValueEstimate: {
     estimatedMarketValue: number;
     suggestedStartPrice: number;
@@ -162,34 +174,36 @@ function bidderMask(id: string) {
 const STATUS_CONFIG: Record<
   string,
   { label: string; className: string; dot: string }
-> = {
+  > = {
   live: {
     label: "Live",
     className:
-      "border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400",
-    dot: "bg-green-500 animate-pulse",
+      "border-emerald-500 bg-emerald-500 text-white dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950",
+    dot: "bg-current animate-pulse",
   },
   scheduled: {
     label: "Scheduled",
     className:
-      "border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400",
-    dot: "bg-blue-500",
+      "border-sky-500 bg-sky-500 text-white dark:border-sky-400 dark:bg-sky-400 dark:text-sky-950",
+    dot: "bg-current",
   },
   ended: {
     label: "Ended",
-    className: "border-border bg-muted text-muted-foreground",
-    dot: "bg-muted-foreground",
+    className:
+      "border-indigo-500 bg-indigo-500 text-white dark:border-indigo-400 dark:bg-indigo-400 dark:text-indigo-950",
+    dot: "bg-current",
   },
   expired: {
     label: "Expired",
     className:
-      "border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
-    dot: "bg-yellow-500",
+      "border-amber-500 bg-amber-500 text-white dark:border-amber-400 dark:bg-amber-400 dark:text-amber-950",
+    dot: "bg-current",
   },
   cancelled: {
     label: "Cancelled",
-    className: "border-destructive/30 bg-destructive/10 text-destructive",
-    dot: "bg-destructive",
+    className:
+      "border-rose-500 bg-rose-500 text-white dark:border-rose-400 dark:bg-rose-400 dark:text-rose-950",
+    dot: "bg-current",
   },
 };
 
@@ -274,7 +288,6 @@ export default function AuctionDetailPage({ params }: Params) {
   const [isBidding, setIsBidding] = useState(false);
   const [isTogglingWatchlist, setIsTogglingWatchlist] = useState(false);
   const [isPreparingPayment, setIsPreparingPayment] = useState(false);
-  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const auctionQuery = useQuery({
     queryKey: queryKeys.auctionDetail(id),
@@ -348,8 +361,22 @@ export default function AuctionDetailPage({ params }: Params) {
     return selected;
   }, [auction]);
 
+  const reviewQuery = useQuery({
+    queryKey: queryKeys.auctionReview(id),
+    queryFn: async () => {
+      const res = await fetch(`/api/reviews/auction/${encodeURIComponent(id)}`);
+      const json = (await res.json()) as {
+        ok?: boolean;
+        review?: { id: string; rating: number; comment: string | null } | null;
+      };
+      return json.review ?? null;
+    },
+    enabled: Boolean(session?.user?.id && auction?.isViewerWinner && isFinalized),
+  });
+
   const winnerPayment = paymentStatusQuery.data;
   const isWinnerPaymentPaid = winnerPayment?.status === "paid";
+  const hasReviewed = Boolean(reviewQuery.data);
 
   async function submitBid(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -398,6 +425,7 @@ export default function AuctionDetailPage({ params }: Params) {
       return;
     setIsTogglingWatchlist(true);
     try {
+      const nextWatchedState = !isWatched;
       const res = await fetch(
         isWatched ? `/api/watchlist/${id}` : "/api/watchlist",
         isWatched
@@ -418,6 +446,17 @@ export default function AuctionDetailPage({ params }: Params) {
         queryClient.invalidateQueries({ queryKey: queryKeys.watchlist() }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboardData() }),
       ]);
+      toast.success(
+        nextWatchedState
+          ? "Added to watchlist."
+          : "Removed from watchlist.",
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to update watchlist.",
+      );
     } finally {
       setIsTogglingWatchlist(false);
     }
@@ -432,7 +471,6 @@ export default function AuctionDetailPage({ params }: Params) {
     )
       return;
     setIsPreparingPayment(true);
-    setPaymentError(null);
     try {
       const txRes = await fetch("/api/transactions", {
         method: "POST",
@@ -446,7 +484,6 @@ export default function AuctionDetailPage({ params }: Params) {
         amount?: number;
       };
       if (!txRes.ok || !txJson.ok || !txJson.transactionId) {
-        setPaymentError(txJson.message ?? "Unable to create payment.");
         return;
       }
       const amount =
@@ -457,7 +494,6 @@ export default function AuctionDetailPage({ params }: Params) {
         `/payments/${method}?${new URLSearchParams({ transactionId: txJson.transactionId, amount: String(amount), productName: auction.title })}`,
       );
     } catch {
-      setPaymentError("Unable to start payment.");
     } finally {
       setIsPreparingPayment(false);
     }
@@ -569,13 +605,109 @@ export default function AuctionDetailPage({ params }: Params) {
                 <div className="absolute top-4 left-4">
                   <StatusPill status={effectiveStatus ?? "ended"} />
                 </div>
-                {/* Bid count overlay */}
-                <div className="absolute top-4 right-4 flex items-center gap-1.5 rounded-full border border-border/60 bg-background/90 px-3 py-1 backdrop-blur-sm">
-                  <Gavel className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-xs font-semibold text-foreground">
-                    {auction.totalBids}{" "}
-                    {auction.totalBids === 1 ? "bid" : "bids"}
-                  </span>
+                {/* Top-right overlay cluster */}
+                <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+                  <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/90 px-3 py-1 backdrop-blur-sm">
+                    <Gavel className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-xs font-semibold text-foreground">
+                      {auction.totalBids}{" "}
+                      {auction.totalBids === 1 ? "bid" : "bids"}
+                    </span>
+                  </div>
+                  {(session?.user && !auction.isOwnerView) ||
+                  (isFinalized && auction.isViewerWinner) ? (
+                    <TooltipProvider delayDuration={100}>
+                      <div className="flex items-center gap-1.5 rounded-full border border-border/60 bg-background/92 px-2 py-2 shadow-sm backdrop-blur-sm">
+                        {session?.user && !auction.isOwnerView ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={toggleWatchlist}
+                                disabled={isTogglingWatchlist || watchlistStatusQuery.isLoading}
+                                className="h-8 w-8 cursor-pointer rounded-full"
+                              >
+                                {isTogglingWatchlist || watchlistStatusQuery.isLoading ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Heart
+                                    className={`h-4 w-4 ${isWatched ? "fill-current text-primary" : "text-foreground"}`}
+                                  />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {isWatched ? "Remove from watchlist" : "Add to watchlist"}
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : null}
+                        {session?.user &&
+                        !auction.isOwnerView &&
+                        isFinalized &&
+                        auction.isViewerWinner ? (
+                          <div className="h-5 w-px bg-border" />
+                        ) : null}
+                        {isFinalized && auction.isViewerWinner ? (
+                          paymentStatusQuery.isLoading || isPreparingPayment ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex h-8 w-8 cursor-progress items-center justify-center rounded-full text-muted-foreground">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>Loading payment status</TooltipContent>
+                            </Tooltip>
+                          ) : isWinnerPaymentPaid ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex h-8 w-8 cursor-help items-center justify-center rounded-full bg-green-500/10 text-green-600 dark:text-green-400">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {winnerPayment?.provider
+                                  ? `Payment complete via ${winnerPayment.provider}`
+                                  : "Payment complete"}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => startCheckout("esewa")}
+                                    className="h-8 w-8 cursor-pointer rounded-full text-foreground"
+                                  >
+                                    <HandCoins className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Pay with eSewa</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => startCheckout("khalti")}
+                                    className="h-8 w-8 cursor-pointer rounded-full text-foreground"
+                                  >
+                                    <CreditCard className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Pay with Khalti</TooltipContent>
+                              </Tooltip>
+                            </>
+                          )
+                        ) : null}
+                      </div>
+                    </TooltipProvider>
+                  ) : null}
                 </div>
               </div>
 
@@ -607,11 +739,11 @@ export default function AuctionDetailPage({ params }: Params) {
                         </span>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-muted-foreground">Seller:</span>
-                        <span className="font-semibold text-foreground">
-                          {auction.sellerName}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-muted-foreground">Seller:</span>
+                          <span className="font-semibold text-foreground">
+                            {auction.sellerName}
+                          </span>
                         {auction.isSellerVerified && (
                           <Badge
                             variant="outline"
@@ -620,7 +752,21 @@ export default function AuctionDetailPage({ params }: Params) {
                             Verified Seller
                           </Badge>
                         )}
-                      </div>
+                          {auction.sellerRating !== null && auction.sellerReviewCount > 0 && (
+                            <span className="inline-flex items-center gap-1 text-xs text-amber-500 font-semibold">
+                              <StarRating value={Math.round(auction.sellerRating)} size="sm" />
+                              {auction.sellerRating} ({auction.sellerReviewCount})
+                            </span>
+                          )}
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="h-8 rounded-full px-3"
+                          >
+                            <Link href={`/sellers/${auction.sellerId}`}>View Profile</Link>
+                          </Button>
+                        </div>
                     </div>
                   </div>
 
@@ -934,90 +1080,6 @@ export default function AuctionDetailPage({ params }: Params) {
               </div>
             </SideCard>
 
-            {/* Watchlist card */}
-            {session?.user && !auction.isOwnerView && (
-              <SideCard>
-                <SideCardHeader
-                  title="Watchlist"
-                  subtitle="Track this auction from your dashboard"
-                />
-                <div className="p-5">
-                  <Button
-                    type="button"
-                    onClick={toggleWatchlist}
-                    disabled={
-                      isTogglingWatchlist || watchlistStatusQuery.isLoading
-                    }
-                    variant={isWatched ? "outline" : "default"}
-                    className={`w-full h-11 rounded-xl font-semibold gap-2 transition-all ${!isWatched ? "bg-primary text-primary-foreground hover:bg-primary/90" : ""}`}
-                  >
-                    {isTogglingWatchlist || watchlistStatusQuery.isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Heart
-                        className={`h-4 w-4 ${isWatched ? "fill-current text-primary" : ""}`}
-                      />
-                    )}
-                    {isWatched ? "Saved to Watchlist" : "Add to Watchlist"}
-                  </Button>
-                </div>
-              </SideCard>
-            )}
-
-            {/* Payment card */}
-            {isFinalized && auction.isViewerWinner && (
-              <SideCard>
-                <SideCardHeader
-                  title={
-                    isWinnerPaymentPaid
-                      ? "Payment Complete"
-                      : "Complete Payment"
-                  }
-                  subtitle={
-                    isWinnerPaymentPaid
-                      ? `Paid${winnerPayment?.provider ? ` via ${winnerPayment.provider}` : ""}`
-                      : "You won! Finalize your purchase below."
-                  }
-                />
-                <div className="p-5 space-y-3">
-                  {paymentStatusQuery.isLoading ? (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Checking payment status…
-                    </div>
-                  ) : isWinnerPaymentPaid ? (
-                    <div className="flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/8 px-4 py-3">
-                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
-                      <p className="text-xs font-medium text-green-700 dark:text-green-400">
-                        Payment already completed.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2">
-                      <PaymentMethodButton
-                        method="esewa"
-                        onClick={() => startCheckout("esewa")}
-                        disabled={isPreparingPayment}
-                        loading={isPreparingPayment}
-                        size="default"
-                        className="h-11 rounded-xl text-sm"
-                      />
-                      <PaymentMethodButton
-                        method="khalti"
-                        onClick={() => startCheckout("khalti")}
-                        disabled={isPreparingPayment}
-                        size="default"
-                        emphasis="soft"
-                        className="h-11 rounded-xl text-sm"
-                      />
-                    </div>
-                  )}
-                  {paymentError && (
-                    <p className="text-xs text-destructive">{paymentError}</p>
-                  )}
-                </div>
-              </SideCard>
-            )}
 
             {isFinalized && session?.user && (auction.isOwnerView || auction.isViewerWinner) && (
               <AuctionContactRequestForm
@@ -1032,6 +1094,49 @@ export default function AuctionDetailPage({ params }: Params) {
                 buttonLabel={auction.isOwnerView ? "Contact Bidder" : "Contact Seller"}
               />
             )}
+
+            {isFinalized && auction.isViewerWinner && (
+              <SideCard>
+                <div className="border-b border-border px-5 py-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                    Your Experience
+                  </p>
+                  <h3 className="mt-1 text-base font-semibold text-foreground">
+                    {hasReviewed ? "Review Submitted" : "Leave a Review"}
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Share feedback for auctions you won from this seller.
+                  </p>
+                </div>
+                <div className="p-5">
+                  {reviewQuery.isLoading ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Loading review status...
+                    </div>
+                  ) : hasReviewed && reviewQuery.data ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <StarRating value={reviewQuery.data.rating} size="sm" />
+                        <span className="text-xs text-muted-foreground">Your rating</span>
+                      </div>
+                      {reviewQuery.data.comment ? (
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                          {reviewQuery.data.comment}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <ReviewForm
+                      auctionId={auction.id}
+                      sellerId={auction.sellerId}
+                      sellerName={auction.sellerName}
+                    />
+                  )}
+                </div>
+              </SideCard>
+            )}
+
           </aside>
         </div>
       </div>

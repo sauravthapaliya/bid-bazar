@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { StarRating } from "@/components/reviews/star-rating";
 import { queryKeys } from "@/lib/query-keys";
 import {
   Gavel,
@@ -12,8 +13,8 @@ import {
   Clock,
   Tag,
   PackageSearch,
-  Loader2,
   AlertCircle,
+  ShieldCheck,
 } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -31,6 +32,10 @@ type AuctionListItem = {
   totalBids: number;
   endsAt: string | Date | null;
   imageUrl: string | null;
+  sellerName: string;
+  isSellerVerified: boolean;
+  sellerRating: number | null;
+  sellerReviewCount: number;
 };
 
 async function fetchLiveAuctions(): Promise<AuctionListItem[]> {
@@ -121,12 +126,14 @@ function AuctionCard({ auction }: { auction: AuctionListItem }) {
         </div>
 
         {/* Status dot — top right */}
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 px-2.5 py-1 backdrop-blur-sm">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-xs font-semibold text-green-700 dark:text-green-400">
-            Live
-          </span>
-        </div>
+        {/* Status badge */}
+        <Badge
+          variant="statusLive"
+          className="absolute top-3 right-3 border-emerald-500 bg-emerald-500 text-white px-2.5 py-1 text-xs font-semibold shadow-sm shadow-emerald-950/25 dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950"
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+          Live
+        </Badge>
       </div>
 
       {/* Content */}
@@ -156,6 +163,22 @@ function AuctionCard({ auction }: { auction: AuctionListItem }) {
           >
             {conditionLabel(auction.condition, auction.conditionAgeDays)}
           </Badge>
+        </div>
+
+        {/* Seller info */}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="truncate max-w-30 font-medium text-foreground">
+            {auction.sellerName}
+          </span>
+          {auction.isSellerVerified && (
+            <ShieldCheck className="h-3 w-3 text-green-500 shrink-0" />
+          )}
+          {auction.sellerRating !== null && auction.sellerReviewCount > 0 && (
+            <span className="ml-auto flex items-center gap-1 text-amber-500 font-semibold shrink-0">
+              <StarRating value={Math.round(auction.sellerRating)} size="sm" />
+              <span className="text-xs">{auction.sellerRating}</span>
+            </span>
+          )}
         </div>
 
         {/* Price block */}

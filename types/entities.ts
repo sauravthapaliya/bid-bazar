@@ -11,6 +11,7 @@ export const COLLECTIONS = {
   notifications: "notifications",
   transactions: "transactions",
   auctionContactRequests: "auctionContactRequests",
+  reviews: "reviews",
 } as const;
 
 export type EntityId = string;
@@ -173,6 +174,16 @@ export interface TransactionEntity extends BaseTimestamps {
   esewaRefId?: string | null;
   khaltiPidx?: string | null;
   gatewayPayloadHash?: string | null;
+}
+
+export interface ReviewEntity {
+  _id: EntityId;
+  auctionId: EntityId;
+  sellerId: EntityId;
+  reviewerId: EntityId;
+  rating: 1 | 2 | 3 | 4 | 5;
+  comment?: string | null;
+  createdAt: Date;
 }
 
 export interface AuctionContactRequestEntity extends BaseTimestamps {

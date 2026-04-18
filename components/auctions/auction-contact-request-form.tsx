@@ -5,6 +5,15 @@ import { useSession } from "next-auth/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { Loader2, Mail, Send } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -144,10 +153,11 @@ export function AuctionContactRequestForm({
               type="button"
               variant={sentAt ? "outline" : "default"}
               size="sm"
-              onClick={() => setIsOpen((prev) => !prev)}
+              onClick={() => setIsOpen(true)}
+              className="cursor-pointer"
             >
               <Mail className="mr-2 h-4 w-4" />
-              {isOpen ? "Close form" : primaryActionLabel}
+              {primaryActionLabel}
             </Button>
           </div>
 
@@ -163,86 +173,102 @@ export function AuctionContactRequestForm({
           </div>
         </div>
 
-        {isOpen ? (
-          <form className="mt-4 grid gap-4" onSubmit={handleSubmit}>
-            <div className="grid gap-4 sm:grid-cols-2">
+        <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+          <AlertDialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-2xl">
+            <AlertDialogHeader className="items-start text-left">
+              <AlertDialogTitle>
+                {buttonLabel ?? "Share contact details"}
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Share your phone and meetup details with {counterpartyLabel} for{" "}
+                {auctionTitle}.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <form className="grid gap-4" onSubmit={handleSubmit}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor={`contact-name-${auctionId}`}>Your name</Label>
+                  <Input
+                    id={`contact-name-${auctionId}`}
+                    value={senderName}
+                    onChange={(event) => setSenderName(event.target.value)}
+                    placeholder="Full name"
+                    minLength={2}
+                    maxLength={120}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`contact-phone-${auctionId}`}>Phone number</Label>
+                  <Input
+                    id={`contact-phone-${auctionId}`}
+                    value={senderPhone}
+                    onChange={(event) => setSenderPhone(event.target.value)}
+                    placeholder="98XXXXXXXX"
+                    minLength={7}
+                    maxLength={30}
+                    required
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor={`contact-name-${auctionId}`}>Your name</Label>
+                <Label htmlFor={`contact-location-${auctionId}`}>
+                  Pickup or delivery location
+                </Label>
                 <Input
-                  id={`contact-name-${auctionId}`}
-                  value={senderName}
-                  onChange={(event) => setSenderName(event.target.value)}
-                  placeholder="Full name"
-                  minLength={2}
+                  id={`contact-location-${auctionId}`}
+                  value={meetingLocation}
+                  onChange={(event) => setMeetingLocation(event.target.value)}
+                  placeholder="Kalanki, Kathmandu"
+                  minLength={3}
+                  maxLength={240}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`contact-time-${auctionId}`}>Preferred contact time</Label>
+                <Input
+                  id={`contact-time-${auctionId}`}
+                  value={preferredContactTime}
+                  onChange={(event) => setPreferredContactTime(event.target.value)}
+                  placeholder="Weekdays after 6 PM"
                   maxLength={120}
-                  required
                 />
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor={`contact-phone-${auctionId}`}>Phone number</Label>
-                <Input
-                  id={`contact-phone-${auctionId}`}
-                  value={senderPhone}
-                  onChange={(event) => setSenderPhone(event.target.value)}
-                  placeholder="98XXXXXXXX"
-                  minLength={7}
-                  maxLength={30}
-                  required
+                <Label htmlFor={`contact-note-${auctionId}`}>Note</Label>
+                <Textarea
+                  id={`contact-note-${auctionId}`}
+                  value={note}
+                  onChange={(event) => setNote(event.target.value)}
+                  placeholder="Any extra handover or delivery instructions"
+                  maxLength={1000}
+                  rows={4}
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor={`contact-location-${auctionId}`}>Pickup or delivery location</Label>
-              <Input
-                id={`contact-location-${auctionId}`}
-                value={meetingLocation}
-                onChange={(event) => setMeetingLocation(event.target.value)}
-                placeholder="Kalanki, Kathmandu"
-                minLength={3}
-                maxLength={240}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor={`contact-time-${auctionId}`}>Preferred contact time</Label>
-              <Input
-                id={`contact-time-${auctionId}`}
-                value={preferredContactTime}
-                onChange={(event) => setPreferredContactTime(event.target.value)}
-                placeholder="Weekdays after 6 PM"
-                maxLength={120}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor={`contact-note-${auctionId}`}>Note</Label>
-              <Textarea
-                id={`contact-note-${auctionId}`}
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                placeholder="Any extra handover or delivery instructions"
-                maxLength={1000}
-                rows={4}
-              />
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground">
                 The other party will receive this by email and can reply directly.
-              </p>
-              <Button type="submit" size="sm" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="mr-2 h-4 w-4" />
-                )}
-                {sentAt ? "Resend email" : "Send email"}
-              </Button>
-            </div>
-          </form>
-        ) : null}
+              </div>
+
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="mr-2 h-4 w-4" />
+                  )}
+                  {sentAt ? "Resend email" : "Send email"}
+                </Button>
+              </AlertDialogFooter>
+            </form>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );

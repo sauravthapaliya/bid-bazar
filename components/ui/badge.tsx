@@ -13,31 +13,31 @@ const badgeVariants = cva(
         neutral:
           "border-slate-300/70 bg-slate-100 text-slate-800 [a&]:hover:bg-slate-100 dark:border-slate-700/70 dark:bg-slate-800/60 dark:text-slate-200",
         success:
-          "border-emerald-300/70 bg-emerald-100 text-emerald-900 [a&]:hover:bg-emerald-100 dark:border-emerald-800/70 dark:bg-emerald-900/30 dark:text-emerald-200",
+          "border-emerald-500 bg-emerald-500 text-white [a&]:hover:bg-emerald-500 dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950",
         warning:
-          "border-amber-300/70 bg-amber-100 text-amber-900 [a&]:hover:bg-amber-100 dark:border-amber-800/70 dark:bg-amber-900/30 dark:text-amber-200",
+          "border-amber-500 bg-amber-500 text-white [a&]:hover:bg-amber-500 dark:border-amber-400 dark:bg-amber-400 dark:text-amber-950",
         secondary:
           "bg-secondary text-secondary-foreground [a&]:hover:bg-secondary/90",
         statusLive:
-          "border-emerald-300/70 bg-emerald-100 text-emerald-900 [a&]:hover:bg-emerald-100 dark:border-emerald-800/70 dark:bg-emerald-900/30 dark:text-emerald-200",
+          "border-emerald-500 bg-emerald-500 text-white [a&]:hover:bg-emerald-500 dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950",
         statusScheduled:
-          "border-sky-300/70 bg-sky-100 text-sky-900 [a&]:hover:bg-sky-100 dark:border-sky-800/70 dark:bg-sky-900/30 dark:text-sky-200",
+          "border-sky-500 bg-sky-500 text-white [a&]:hover:bg-sky-500 dark:border-sky-400 dark:bg-sky-400 dark:text-sky-950",
         statusExpired:
-          "border-amber-300/70 bg-amber-100 text-amber-900 [a&]:hover:bg-amber-100 dark:border-amber-800/70 dark:bg-amber-900/30 dark:text-amber-200",
+          "border-amber-500 bg-amber-500 text-white [a&]:hover:bg-amber-500 dark:border-amber-400 dark:bg-amber-400 dark:text-amber-950",
         statusEnded:
-          "border-indigo-300/70 bg-indigo-100 text-indigo-900 [a&]:hover:bg-indigo-100 dark:border-indigo-800/70 dark:bg-indigo-900/30 dark:text-indigo-200",
+          "border-indigo-500 bg-indigo-500 text-white [a&]:hover:bg-indigo-500 dark:border-indigo-400 dark:bg-indigo-400 dark:text-indigo-950",
         statusCancelled:
-          "border-rose-300/70 bg-rose-100 text-rose-900 [a&]:hover:bg-rose-100 dark:border-rose-800/70 dark:bg-rose-900/30 dark:text-rose-200",
+          "border-rose-500 bg-rose-500 text-white [a&]:hover:bg-rose-500 dark:border-rose-400 dark:bg-rose-400 dark:text-rose-950",
         bidWinning:
-          "border-cyan-300/70 bg-cyan-100 text-cyan-900 [a&]:hover:bg-cyan-100 dark:border-cyan-800/70 dark:bg-cyan-900/30 dark:text-cyan-200",
+          "border-cyan-500 bg-cyan-500 text-white [a&]:hover:bg-cyan-500 dark:border-cyan-400 dark:bg-cyan-400 dark:text-cyan-950",
         bidOutbid:
-          "border-orange-300/70 bg-orange-100 text-orange-900 [a&]:hover:bg-orange-100 dark:border-orange-800/70 dark:bg-orange-900/30 dark:text-orange-200",
+          "border-orange-500 bg-orange-500 text-white [a&]:hover:bg-orange-500 dark:border-orange-400 dark:bg-orange-400 dark:text-orange-950",
         bidWon:
-          "border-emerald-300/70 bg-emerald-100 text-emerald-900 [a&]:hover:bg-emerald-100 dark:border-emerald-800/70 dark:bg-emerald-900/30 dark:text-emerald-200",
+          "border-emerald-500 bg-emerald-500 text-white [a&]:hover:bg-emerald-500 dark:border-emerald-400 dark:bg-emerald-400 dark:text-emerald-950",
         bidLost:
-          "border-red-300/70 bg-red-100 text-red-900 [a&]:hover:bg-red-100 dark:border-red-800/70 dark:bg-red-900/30 dark:text-red-200",
+          "border-red-500 bg-red-500 text-white [a&]:hover:bg-red-500 dark:border-red-400 dark:bg-red-400 dark:text-red-950",
         bidCancelled:
-          "border-rose-300/70 bg-rose-100 text-rose-900 [a&]:hover:bg-rose-100 dark:border-rose-800/70 dark:bg-rose-900/30 dark:text-rose-200",
+          "border-rose-500 bg-rose-500 text-white [a&]:hover:bg-rose-500 dark:border-rose-400 dark:bg-rose-400 dark:text-rose-950",
         destructive:
           "bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:

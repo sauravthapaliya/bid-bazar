@@ -72,6 +72,10 @@ async function createIndexes() {
     db
       .collection(COLLECTIONS.auctionContactRequests)
       .createIndex({ auctionId: 1, createdAt: -1 }),
+
+    db.collection(COLLECTIONS.reviews).createIndex({ auctionId: 1 }, { unique: true }),
+    db.collection(COLLECTIONS.reviews).createIndex({ sellerId: 1, createdAt: -1 }),
+    db.collection(COLLECTIONS.reviews).createIndex({ reviewerId: 1, createdAt: -1 }),
   ]);
 }
 

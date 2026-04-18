@@ -24,6 +24,8 @@ export type AuctionListItem = {
   sellerName: string;
   isSellerVerified: boolean;
   imageUrl: string | null;
+  sellerRating: number | null;
+  sellerReviewCount: number;
 };
 
 export type AuctionBidItem = {
@@ -113,8 +115,10 @@ function mapAuctionRow(params: {
   product?: Record<string, unknown>;
   sellerName: string;
   isSellerVerified: boolean;
+  sellerRating?: number | null;
+  sellerReviewCount?: number;
 }): AuctionListItem {
-  const { auction, product, sellerName, isSellerVerified } = params;
+  const { auction, product, sellerName, isSellerVerified, sellerRating, sellerReviewCount } = params;
   const imageId = getPrimaryImageFileId(product?.images);
 
   return {
@@ -136,7 +140,33 @@ function mapAuctionRow(params: {
     sellerName,
     isSellerVerified,
     imageUrl: imageId ? `/api/uploads/${imageId}` : null,
+    sellerRating: sellerRating ?? null,
+    sellerReviewCount: sellerReviewCount ?? 0,
   };
+}
+
+async function getSellerRatingMap(sellerIds: string[], db: Awaited<ReturnType<typeof connectToDatabase>>["db"]) {
+  if (sellerIds.length === 0) return new Map<string, { avg: number; count: number }>();
+
+  const uniqueIds = [...new Set(sellerIds)];
+  const idClauses = uniqueIds.flatMap((id) => idVariants(id).map((v) => ({ sellerId: v })));
+
+  const agg = await db
+    .collection(COLLECTIONS.reviews)
+    .aggregate([
+      { $match: { $or: idClauses } },
+      { $group: { _id: "$sellerId", avg: { $avg: "$rating" }, count: { $sum: 1 } } },
+    ])
+    .toArray();
+
+  const map = new Map<string, { avg: number; count: number }>();
+  for (const row of agg) {
+    map.set(asIdString(row._id), {
+      avg: Math.round((row.avg as number) * 10) / 10,
+      count: row.count as number,
+    });
+  }
+  return map;
 }
 
 async function getUsersMapByIds(ids: string[]) {
@@ -195,16 +225,23 @@ export async function getLiveAuctions(limit = 30): Promise<AuctionListItem[]> {
   }
 
   const sellerIds = auctions.map((row) => asIdString(row.sellerId));
-  const usersById = await getUsersMapByIds(sellerIds);
+  const [usersById, ratingMap] = await Promise.all([
+    getUsersMapByIds(sellerIds),
+    getSellerRatingMap(sellerIds, db),
+  ]);
 
-  return auctions.map((auction) =>
-    mapAuctionRow({
+  return auctions.map((auction) => {
+    const sid = asIdString(auction.sellerId);
+    const rating = ratingMap.get(sid);
+    return mapAuctionRow({
       auction: auction as Record<string, unknown>,
       product: productById.get(asIdString(auction.productId)),
-      sellerName: usersById.get(asIdString(auction.sellerId)) ?? "Seller",
+      sellerName: usersById.get(sid) ?? "Seller",
       isSellerVerified: false,
-    })
-  );
+      sellerRating: rating?.avg ?? null,
+      sellerReviewCount: rating?.count ?? 0,
+    });
+  });
 }
 
 export async function getAuctionDetail(
@@ -231,11 +268,14 @@ export async function getAuctionDetail(
   } as never);
 
   const sellerId = asIdString(auction.sellerId);
-  const seller = await db.collection<Record<string, unknown>>(COLLECTIONS.users).findOne(
-    { _id: { $in: idVariants(sellerId) } } as never,
-    { projection: { name: 1, isSellerVerified: 1 } },
-  );
-  const usersById = await getUsersMapByIds([sellerId]);
+  const [seller, usersById, sellerRatingMap] = await Promise.all([
+    db.collection<Record<string, unknown>>(COLLECTIONS.users).findOne(
+      { _id: { $in: idVariants(sellerId) } } as never,
+      { projection: { name: 1, isSellerVerified: 1 } },
+    ),
+    getUsersMapByIds([sellerId]),
+    getSellerRatingMap([sellerId], db),
+  ]);
   const isOwnerView = Boolean(viewerUserId && idVariants(viewerUserId).some((id) => asIdString(id) === sellerId));
   const winnerIdRaw = auction.winnerId ?? auction.highestBidderId ?? null;
   const winnerId =
@@ -284,6 +324,7 @@ export async function getAuctionDetail(
     };
   });
 
+  const sellerRatingData = sellerRatingMap.get(sellerId);
   return {
     ...mapAuctionRow({
       auction: auction as Record<string, unknown>,
@@ -292,6 +333,8 @@ export async function getAuctionDetail(
         (seller && typeof seller.name === "string" ? seller.name : usersById.get(sellerId)) ??
         "Seller",
       isSellerVerified: seller?.isSellerVerified === true,
+      sellerRating: sellerRatingData?.avg ?? null,
+      sellerReviewCount: sellerRatingData?.count ?? 0,
     }),
     productId: asIdString(auction.productId),
     bids: bidRows,
